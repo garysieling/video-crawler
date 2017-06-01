@@ -9,10 +9,20 @@ object TalkToMarkdown {
     val subtitles = new Subtitles
     val urls = new Urls
 
-    urls.ytUrl(
-      urls.ytId("https://www.youtube.com/watch?v=YME2eyde38A&feature=youtu.be")
-    ) map (
-      cmd.youtubeDL
+
+    cmd.withTempDirectory[Iterable[LogEntry]](
+      (dir) => {
+        val id = urls.ytId("https://www.youtube.com/watch?v=YME2eyde38A&feature=youtu.be").get
+        val url = urls.ytUrl(id)
+
+        cmd.youtubeDL(dir)(url) // TODO map over this
+        cmd.vttToSrt(dir)(id) // TODO map over this
+        subtitles.all(cmd.load(dir, id.getSubtitleFile))._2 // TODO combine logs
+      }
+    ).map(
+      (logEntry: LogEntry) => {
+        println(logEntry.value)
+      }
     )
 
   }

@@ -4,5 +4,11 @@
 case class Entry(time: String, text: String)
 
 class Subtitles {
-  def all(text: String): List[Entry] = ???
+  def all(text: Iterator[String]): (Iterable[Entry], Iterable[LogEntry]) = {
+    (text.map((line) => {
+      println(line)
+      Entry("", line)
+    }).toList,
+      Seq(LogEntry("")))
+  }
 }

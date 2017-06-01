@@ -1,8 +1,10 @@
 /**
   * Created by gary on 5/31/2017.
   */
-case class YtId(value: String)
-case class YtUrl(value: String)
+case class YtId(value: String) {
+  def getSubtitleFile = "v" + value + ".srt"
+}
+case class YtUrl(value: String, id: YtId)
 
 class Urls {
   def ytId(requestedUrl: String): Option[YtId] = {
@@ -55,13 +57,11 @@ class Urls {
     }
   }
 
-  def ytUrl(valueOpt: Option[YtId]): Option[YtUrl] =
-    valueOpt.map(
-      (v) => YtUrl("https://www.youtube.com/watch?v=" + v.value)
-    )
+  def ytUrl(v: YtId): YtUrl =
+    YtUrl("https://www.youtube.com/watch?v=" + v.value, v)
 
-  def ytUrl(valueOpt: Option[YtId], time: Int): Option[YtUrl] =
-    valueOpt.map(
-      (v) => YtUrl("https://www.youtube.com/watch?v=" + v.value + "&t=" + time)
-    )
+
+  def ytUrl(v: YtId, time: Int): YtUrl =
+     YtUrl("https://www.youtube.com/watch?v=" + v.value + "&t=" + time, v)
+
 }
