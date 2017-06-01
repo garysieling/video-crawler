@@ -1,0 +1,23 @@
+target
+*.class
+*.iml
+*.ipr
+*.iws
+.idea
+out
+
+dist/*
+target/
+lib_managed/
+src_managed/
+project/boot/
+project/plugins/project/
+.history
+.cache
+.lib/
+
+### Scala ###
+*.class
+*.log
+
+# End of https://www.gitignore.io/api/sbt,scala
