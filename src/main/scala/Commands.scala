@@ -1,3 +1,4 @@
+import java.io.{BufferedReader, FileReader}
 import java.nio.file.Files
 
 import scala.io.Source
@@ -38,13 +39,34 @@ class Commands {
     cb(Directory(Files.createTempDirectory("indexer").toAbsolutePath.toString))
   }
 
-  def youtubeDL(directory: Directory)(id: YtUrl) = {
+  def parseJson(filename: String): org.json.JSONObject = {
+    import org.json.JSONObject
+
+    val br = new BufferedReader(new FileReader(filename))
+
+    val sb = new StringBuilder()
+    var line = br.readLine()
+
+    while (line != null) {
+      sb.append(line)
+      sb.append(System.lineSeparator())
+      line = br.readLine()
+    }
+
+    val everything = sb.toString()
+
+    new JSONObject(everything)
+  }
+
+  def youtubeDL(directory: Directory)(url: YtUrl) = {
     command(
-      "d:\\Software\\youtube-dl.exe --skip-download \"" + id.value + "\" " +
+      "d:\\Software\\youtube-dl.exe --skip-download \"" + url.value + "\" " +
       "--sub-format srt --write-sub --write-auto-sub --ignore-errors --youtube-skip-dash-manifest  " +
     " -o \"" + directory.value + "/v%(id)s\" --write-info-json --write-description " +
       "--write-annotations --sub-lang en --no-call-home"
     )
+
+    parseJson(directory.value + "/v" + url.id.value + ".info.json")
   }
 
   def curl = ???

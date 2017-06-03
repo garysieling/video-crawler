@@ -10,18 +10,25 @@ class Entry {
   var text: String = ""
 
   def getTime(value: String): Double = {
-    val parts = value.split(":")
+    val parts = value.trim.split(":")
+    if (parts(0) == "") {
+      throw new Exception("missing time")
+    }
+
     val nums = List(parts(0).toInt, parts(1).toInt)
     val last = parts(2).split(",").map(_.toInt)
 
     nums(0) * 3600 + nums(1) * 60 + last(0) + (last(1) / 1000.0)
   }
+
+  def getStartTime(): Double = getTime(startTime)
+  def getEndTime(): Double = getTime(endTime)
 }
 
 //type Checker = (String) => Boolean
 
 class Subtitles {
-  def all(text: Iterator[String]): (Iterable[Entry], Iterable[LogEntry]) = {
+  def all(text: Iterator[String]): Iterable[Entry] = {
     val line0 = new Regex("""^\d+$""")
     val line1 = new Regex("""^\d+:\d+:\d+,\d+ --> \d+:\d+:\d+,\d+$""")
     var seen = Map[String, Boolean]()
@@ -93,10 +100,12 @@ class Subtitles {
       }
     }
 
-    results = results ++ List(thisRow)
+    if (thisRow.text != "") {
+      results = results ++ List(thisRow)
+    }
 
     //return result;
-    (results, Seq(LogEntry("")))
+    results
 
     /*(text.map((line) => {
       println(line)
