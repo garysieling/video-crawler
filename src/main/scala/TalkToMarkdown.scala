@@ -60,17 +60,19 @@ object TalkToMarkdown {
         ).map(
           (values) => {
             val gap = values._1.getEndTime() - values._2.getStartTime()
-            (gap, values._1.text)
+            (gap, values._1.text, values._1.getStartTime())
           }
         ).map(
-          (v: (Double, String)) => {
-            if (v._1 >= 2.5) {
-              md.url(urls.ytUrl(id, v._1.toInt).value)
+          (v: (Double, String, Double)) => {
+            if (v._1 >= 2.7) {
+              md.url(urls.ytUrl(id, v._3.toInt).value)
               md.text("\n")
             }
             md.text(v._2)
           }
         ).toList
+
+        md.text(st.last.text)
 
         println(md.toString)
       }
