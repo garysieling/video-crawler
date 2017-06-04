@@ -1,11 +1,6 @@
 import java.util.UUID
 
-/**
-  * Created by gary on 5/31/2017.
-  */
-case class RequestStatus(requestedId: String) {
-  val requestId = UUID.randomUUID()
-}
+import util._
 
 object TalkToMarkdown {
   def main(args: Array[String]): Unit = {
@@ -21,6 +16,9 @@ object TalkToMarkdown {
       (dir) => {
         val id = urls.ytId("https://www.youtube.com/watch?v=YME2eyde38A&feature=youtu.be").get
         val url = urls.ytUrl(id)
+
+        // TODO add a concept of a cacheable operation
+        // TODO way to send me data (Google spreadsheets?)
 
         // TODO call youtube-dl -U periodically
         val ytData = cmd.youtubeDL(dir)(url) // TODO map over this

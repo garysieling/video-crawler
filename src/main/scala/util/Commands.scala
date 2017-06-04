@@ -1,4 +1,6 @@
-import java.io.{BufferedReader, FileReader}
+package util
+
+import java.io.{BufferedReader, File, FileReader}
 import java.nio.file.Files
 
 import scala.io.Source
@@ -69,7 +71,12 @@ class Commands {
     parseJson(directory.value + "/v" + url.id.value + ".info.json")
   }
 
-  def curl = ???
+  def curl(directory: Directory)(url: String, filename: String): String = {
+    import scala.sys.process._
+
+    val command = ("curl -o  \"" + directory.value + File.separator + filename + "\" \"" + url + "\"")
+    command.!!
+  }
 
   def load(dir: Directory, file: String): Iterator[String] = {
     println(dir.value + "\\" + file)
