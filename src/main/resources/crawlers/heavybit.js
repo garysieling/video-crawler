@@ -2,7 +2,7 @@ module.exports = {
   site: {
     //start: 'https://www.heavybit.com/library/',
     start: "https://www.heavybit.com/library/video/google-dev-evangelist-on-http-2-0/",
-    next: 'https://www.heavybit.com/library/page/{id}/',
+    next: 'https://www.heavybit.com/library/page/{page}/',
     page: '/library/video/'
   },
   data: {
@@ -30,7 +30,6 @@ module.exports = {
         const time = all_times[all_times.length - 2];
 
         const parts = time.split(':');
-        console.log(parts);
         const last = parts[2].split(".");
 
         const length =

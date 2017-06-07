@@ -11,7 +11,6 @@ const results =
     _.map(
       crawler.data,
       (v, k) => {
-        console.log(v, k);
         if (_.isFunction(v)) {
           return [k, v($)];
         } else {
@@ -21,7 +20,7 @@ const results =
     )
   );
 
-console.log(results);
+//console.log(results);
 
 console.log(
   JSON.stringify(
