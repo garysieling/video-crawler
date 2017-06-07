@@ -22,7 +22,17 @@ class Commands {
     output.split("\n").map(LogEntry)
   }
 
-  def vttToSrt(dir: Directory)(id: YtId): Iterable[LogEntry] = {
+  def node(directory: String, cmd: String): String = {
+    import sys.process._
+
+    val output = Process("node " + cmd, new File(directory)).!! // TODO errors should not throw here
+
+    println(output)
+
+    output
+  }
+
+    def vttToSrt(dir: Directory)(id: YtId): Iterable[LogEntry] = {
 
     val srt = dir.value + "\\v" + id.value + ".srt" // TODO use the right OS type for file strings
     val vtt = dir.value + "\\v" + id.value + ".en.vtt"
