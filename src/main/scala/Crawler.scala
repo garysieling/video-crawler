@@ -1,7 +1,9 @@
 import java.io.File
 
 import crawlercommons.robots.SimpleRobotRulesParser
+import sun.misc.Regexp
 import util.{Commands, Directory}
+import scala.util.matching.Regex
 
 /**
   * Created by gary on 6/3/2017.
@@ -13,7 +15,11 @@ object Crawler {
 }
 
 class Crawler[T](directory: Directory) {
-  val startPage: List[String] = List[String]()
+  lazy val startPage: List[String] = List[String]()
+  lazy val nextPage: String = ???
+  lazy val dataPage: String = ???
+  lazy val maxPage: Integer = 10000
+
   val cmd = new Commands()
 
   def initRobots = {
@@ -34,6 +40,9 @@ class Crawler[T](directory: Directory) {
     var index = 0
     var results = List[T]()
 
+    val isPaged = this.nextPage.indexOf("{page}") >= 0
+    var page = 1 // haven't seen 0 yet; also no one startes with page=1
+
     while (todo.headOption.isDefined) {
       val url = todo.head
       todo = todo.tail
@@ -43,15 +52,33 @@ class Crawler[T](directory: Directory) {
 
         if (robotsOk(url)) {
           val filename = index + ".html"
-          val pageContents = cmd.curl(directory)(url, filename)
+          try {
+            val pageContents = cmd.curl(directory)(url, filename)
 
-          index = index + 1
+            index = index + 1
 
-          results = onPage(url, new File(directory.value + "\\" + filename)) :: results
+            if (url.matches(dataPage)) {
+              results = onPage(url, new File(directory.value + "\\" + filename)) :: results
+            } else {
+              if (isPaged && page <= maxPage) {
+                page = page + 1
+                todo = (this.nextPage.replace("{page}", page + "")) :: todo
+              } else {
+                ???
+              }
+            }
 
-          // parse the page for links...
-          // add each link to the list...
-          // follow link...
+            // parse the page for links...
+
+            // add each link to the list...
+            // follow link...
+          } catch {
+            case e: Exception => {
+              e.printStackTrace()
+              // paging errors are ok, just keep going
+              // what to do if no error?
+            }
+          }
         }
       }
     }

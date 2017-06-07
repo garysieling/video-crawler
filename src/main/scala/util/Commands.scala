@@ -90,6 +90,8 @@ class Commands {
     import scala.sys.process._
 
     val command = ("curl -o  \"" + directory.value + File.separator + filename + "\" \"" + url + "\"")
+    println(command)
+
     command.!!
   }
 

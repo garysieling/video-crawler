@@ -22,17 +22,24 @@ class MetadataCrawler(directory: Directory, crawler: String) extends Crawler[Map
     )
   }
 
-  override val startPage = List(
+  override lazy val startPage = List(
     config.getString("start")
   )
 
-  val pageRegex =
-    new Regex(
-      config.getString("page")
-    )
+  override lazy val nextPage =
+    config.getString("nextPage")
 
-  val nextPage =
-    config.getString("next")
+  override lazy val dataPage =
+    config.getString("dataPage")
+
+  override lazy val maxPage = {
+    if (config.has("maxPage")) {
+      config.getInt(maxPage)
+    } else {
+      super.maxPage
+    }
+  }
+
 
   override def onPage(url: String, value: File): Map[String, AnyRef] = {
     val cmd = new Commands
