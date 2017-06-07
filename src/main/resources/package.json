@@ -1,0 +1,16 @@
+{
+  "name": "indexer",
+  "version": "1.0.0",
+  "description": "",
+  "main": "config.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.1",
+    "graceful-fs": "^4.1.11",
+    "lodash": "^4.17.4"
+  }
+}

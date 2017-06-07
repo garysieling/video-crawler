@@ -5,30 +5,30 @@
     page: (url) => url.match('lectures-and-events')
   },
   data: {
-    speakerName_ss: () => {
+    speakerName_ss: ($) => {
       return $('.speaker-name').map(
         function() {
           return $(this).text().trim()
         }
       )
     },
-    audio_url_s: () => {
+    audio_url_s: ($) => {
       return $('.audio-player a').attr('href')
     },
-    transcript_s: () => {
+    transcript_s: ($) => {
       return $('.transcript-text-content p[style*="text-align: justify"]').text()
     },
-    talk_year_i: () => {
+    talk_year_i: ($) => {
       return $('.sidebar-block-header')
         .text()
         .match('\\b\\d\\d\\d\\d\\b')[0]
     },
-    tags_ss: () => $('.tags a').map(
+    tags_ss: ($) => $('.tags a').map(
       function() {
         return $(this).text().trim()
       }
-    ),
-    description_s: () => $('.copy p').text(),
+    ).get(),
+    description_s: ($) => $('.copy p').text(),
     collection_ss: ['Gresham College'],
     url_s: url_s
   }

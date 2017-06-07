@@ -8,16 +8,16 @@ object MetadataCrawler {
   def main(args: Array[String]): Unit = {
     val cmd = new Commands
     cmd.withTempDirectory(
-      new MetadataCrawler(_).run
+      new MetadataCrawler(_, "heavybit").run
     )
   }
 }
 
-class MetadataCrawler(directory: Directory) extends Crawler[Map[String, AnyRef]](directory) {
+class MetadataCrawler(directory: Directory, crawler: String) extends Crawler[Map[String, AnyRef]](directory) {
   def getConfig = {
     val cmd = new Commands
     new JSONObject(
-      cmd.node("D:\\projects\\scala-indexer\\src\\main\\resources\\", "config.js heavybit")
+      cmd.node("config.js " + crawler)
     )
   }
   override val startPage = List(
@@ -25,7 +25,9 @@ class MetadataCrawler(directory: Directory) extends Crawler[Map[String, AnyRef]]
   )
 
   override def onPage(url: String, value: File): Map[String, AnyRef] = {
-    // todo cheerio
+    val cmd = new Commands
+    cmd.node("metadata.js " + crawler + " " + value.toPath)
+
     // todo youtube
     ???
   }
