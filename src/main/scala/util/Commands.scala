@@ -22,13 +22,18 @@ class Commands {
     output.split("\n").map(LogEntry)
   }
 
-  def node(cmd: String): String = {
+  def node(cmd: String, args: List[String] = List()): String = {
     println(cmd)
     import sys.process._
 
+    val entireCommand =
+      "node " + cmd + " " + args.mkString(" ")
+
+    println(entireCommand)
+
     // TODO configurable
     val output = Process(
-      "node " + cmd,
+      entireCommand,
       new File("D:\\projects\\scala-indexer\\src\\main\\resources\\")
     ).!! // TODO errors should not throw here
 

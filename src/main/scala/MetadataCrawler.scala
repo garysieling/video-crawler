@@ -3,8 +3,6 @@ import java.io.{File, PrintWriter}
 import org.json.{JSONArray, JSONObject}
 import util.{Commands, Directory}
 
-import scala.util.matching.Regex
-
 object MetadataCrawler {
   def main(args: Array[String]): Unit = {
     val cmd = new Commands
@@ -29,22 +27,24 @@ class MetadataCrawler(directory: Directory, crawler: String) extends Crawler[Map
   override lazy val nextPage =
     config.getString("nextPage")
 
+  override lazy val domain =
+    config.getString("domain")
+
   override lazy val dataPage =
     config.getString("dataPage")
 
   override lazy val maxPage = {
     if (config.has("maxPage")) {
-      config.getInt(maxPage)
+      config.getInt("maxPage")
     } else {
-      super.maxPage
+      1000
     }
   }
-
 
   override def onPage(url: String, value: File): Map[String, AnyRef] = {
     val cmd = new Commands
     val jsonData = new JSONObject(
-      cmd.node("metadata.js " + crawler + " " + value.toPath)
+      cmd.node("metadata.js \"" + crawler + "\" \"" + value.toPath + "\"")
     )
 
     // todo youtube (heavybit doesn't need this, so skip for now)

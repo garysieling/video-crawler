@@ -1,8 +1,10 @@
 import java.io.File
 
 import crawlercommons.robots.SimpleRobotRulesParser
+import org.json.JSONArray
 import sun.misc.Regexp
 import util.{Commands, Directory}
+
 import scala.util.matching.Regex
 
 /**
@@ -18,6 +20,7 @@ class Crawler[T](directory: Directory) {
   lazy val startPage: List[String] = List[String]()
   lazy val nextPage: String = ???
   lazy val dataPage: String = ???
+  lazy val domain: String = ???
   lazy val maxPage: Integer = 10000
 
   val cmd = new Commands()
@@ -41,7 +44,7 @@ class Crawler[T](directory: Directory) {
     var results = List[T]()
 
     val isPaged = this.nextPage.indexOf("{page}") >= 0
-    var page = 1 // haven't seen 0 yet; also no one startes with page=1
+    var page = 1 // haven't seen 0 yet; also no one starts with page=1
 
     while (todo.headOption.isDefined) {
       val url = todo.head
@@ -57,12 +60,34 @@ class Crawler[T](directory: Directory) {
 
             index = index + 1
 
-            if (url.matches(dataPage)) {
+            if (url.indexOf(dataPage) >= 0) {
               results = onPage(url, new File(directory.value + "\\" + filename)) :: results
             } else {
-              if (isPaged && page <= maxPage) {
-                page = page + 1
-                todo = (this.nextPage.replace("{page}", page + "")) :: todo
+              // get all the links from the page and add to the lists
+              import scala.collection.JavaConversions._
+
+              val linksJava =
+                new JSONArray(
+                  cmd.node("links", List(directory.value + "\\" + filename, url))
+                ).toList
+
+              val linksScala =
+                linksJava.map(
+                  (linkVal) => {
+                    println(linkVal.toString)
+                    linkVal.toString
+                  }
+                ).distinct.filter(
+                  (link) => (link.indexOf(domain) >= 0)
+                )
+
+              todo = todo ++ linksScala
+
+              if (isPaged) {
+                if (page <= maxPage) {
+                  page = page + 1
+                  todo = (this.nextPage.replace("{page}", page + "")) :: todo
+                }
               } else {
                 ???
               }
