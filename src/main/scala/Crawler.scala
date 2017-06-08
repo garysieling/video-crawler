@@ -79,6 +79,10 @@ class Crawler[T](directory: Directory) {
                   }
                 ).distinct.filter(
                   (link) => (link.indexOf(domain) >= 0)
+                ).filter(
+                  (link) =>
+                    (link.indexOf(dataPage) >= 0) ||
+                    (link.indexOf(nextPage) >= 0)
                 )
 
               todo = todo ++ linksScala
