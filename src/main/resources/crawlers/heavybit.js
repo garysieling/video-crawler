@@ -29,7 +29,9 @@ module.exports = {
           function() {
             return [$(this).attr('begin'), $(this).text()];
           }
-        ).get();
+        ).get().filter(
+            (x) => !!x[0] && !!x[1]
+        );
 
         const time = all_times[all_times.length - 2];
 
