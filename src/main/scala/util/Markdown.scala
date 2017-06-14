@@ -63,7 +63,7 @@ class Markdown {
     )
   }
 
-  override  def toString = {
+  override def toString = {
     val finalSb = new StringBuffer
 
     for (prop <- metadata) {
