@@ -1,3 +1,6 @@
+
+let priorCaption = '00:00:00,000';
+
 module.exports = {
   site: {
     domain: 'https://www.heavybit.com',
@@ -15,9 +18,13 @@ module.exports = {
     description_s: ($) => $("meta[property='og:description']").attr('content'),
     tag_s: ($) => [$("meta[property='article:tag']").attr('content')],
     url_s: ($) => $("meta[property='og:url']").attr('content'),
-    captions: ($) => $('#transcript span').map(
+    captions: ($) => $('#transcript span[begin]').map(
       function() {
-        return $(this).attr('begin') + ' --> ' + $(this).text()
+        const begin = $(this).attr('begin');
+        const result = priorCaption + ' --> ' + begin + ' ' + $(this).text()
+        priorCaption = begin;
+
+        return result;
       }
     ).get(),
     talk_year_i: ($) => {
@@ -25,26 +32,36 @@ module.exports = {
         return parseInt(value.match(/\b\d\d\d\d\b/)[0]);
     },
     audio_length_f: ($) => {
-        const all_times = $('#transcript span').map(
+        const all_times = $('#transcript span[begin]').map(
           function() {
             return [$(this).attr('begin'), $(this).text()];
           }
         ).get().filter(
-            (x) => !!x[0] && !!x[1]
+            (x) => x && x.length > 1 && !!x[0] && !!x[1]
         );
 
-        const time = all_times[all_times.length - 2];
+        if (all_times.length > 0) {
+            const time = all_times[all_times.length - 2];
 
-        const parts = time.split(':');
-        const last = parts[2].split(".");
+            const parts = time.split(':');
+            const last = parts[2].split(".");
 
-        const length =
-            3600 * parseInt(parts[0]) + 60 * parseInt(parts[1]) +
-                  parseInt(last[0]) + parseInt(last[1]) / 1000.0;
+            const length =
+                3600 * parseInt(parts[0]) + 60 * parseInt(parts[1]) +
+                      parseInt(last[0]) + parseInt(last[1]) / 1000.0;
 
-        return length;
+            return length;
+        } else {
+            return null;
+        }
     },
     video_url_s: ($) => $($('video source').get()[0]).attr('src'),
-    collection_ss: ['Heavybit']
+    category_l1_ss: ['Business'],
+    category_l1_ss: ['Business'],
+    features_ss: ['Video'],
+    talk_type_l1_ss: ['Conference'],
+    talk_type_l2_Conference_ss: ['Business'],
+    talk_type_l3_Business_ss: ['Heavybit'],
+    collection_l1_ss: ['Heavybit']
   }
 }

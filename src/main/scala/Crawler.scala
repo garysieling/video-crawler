@@ -34,7 +34,10 @@ class Crawler[T](directory: Directory) {
   }
   def robotsOk(value: String) = true
 
+  case class Error(url: String, file: String, messages: String)
+
   def run = {
+    var errors = List[Error]()
     var seen = Set[String]()
     var todo = startPage
 
@@ -103,6 +106,7 @@ class Crawler[T](directory: Directory) {
             // follow link...
           } catch {
             case e: Exception => {
+              errors = Error(url, directory.value + "\\" + filename, e.getStackTraceString) :: errors
               e.printStackTrace()
               // paging errors are ok, just keep going
               // what to do if no error?
@@ -113,6 +117,14 @@ class Crawler[T](directory: Directory) {
     }
 
     onComplete(results)
+
+    errors.map(
+      (error) => {
+        println(error.file)
+        println(error.messages)
+        println(error.url)
+      }
+    )
   }
 
   def onPage(url: String, contents: File): T = ???

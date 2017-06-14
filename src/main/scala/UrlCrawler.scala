@@ -16,7 +16,7 @@ object UrlCrawler {
 }
 
 class UrlCrawler(directory: Directory) extends Crawler[Map[String, AnyRef]](directory) {
-  override val startPage = List("http://www.greatblackspeakers.com/author/dlhughley/")
+  override lazy val startPage = List("http://www.greatblackspeakers.com/author/dlhughley/")
 
   override def onPage(url: String, contents: File): Map[String, AnyRef] = {
     println(url)
