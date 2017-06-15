@@ -207,4 +207,8 @@ class Commands {
     zip.close()
 
   }
+
+  def text(dir: Directory, file: String) = {
+    this.node("text.js", List(dir.value + "\\" + file))
+  }
 }

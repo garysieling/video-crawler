@@ -11,6 +11,7 @@
   "dependencies": {
     "cheerio": "^1.0.0-rc.1",
     "graceful-fs": "^4.1.11",
+    "html-to-text": "^3.3.0",
     "lodash": "^4.17.4"
   }
 }
