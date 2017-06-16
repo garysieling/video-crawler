@@ -8,5 +8,6 @@ libraryDependencies += "commons-logging" % "commons-logging-api" % "1.1"
 libraryDependencies += "org.mozilla" % "rhino" % "1.7.7.1"
 libraryDependencies += "com.github.crawler-commons" % "crawler-commons" % "0.7"
 libraryDependencies += "com.github.sebrichards" %% "postmark-scala" % "1.3"
+libraryDependencies += "org.apache.opennlp" % "opennlp-tools" % "1.8.0"
 
 scalaVersion := "2.12.2"
