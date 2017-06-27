@@ -30,10 +30,10 @@ POSTMARK_REPLY_TO=
 Examples:
 ========
 
-TalkToMarkdown "https://www.youtube.com/watch?v=YME2eyde38A&feature=youtu.be" 
+*TalkToMarkdown "https://www.youtube.com/watch?v=YME2eyde38A&feature=youtu.be"*
 
 Use this if you want to convert a Youtube video to a markdown / blog post format.
 
-MetadataCrawler "test.js"
+*MetadataCrawler "test.js"*
 
 Use this if you're crawling a site.
