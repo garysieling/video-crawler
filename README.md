@@ -19,7 +19,7 @@ CURL=
 
 FFMPEG=
 
-If you want to get zip files of talks + transcripts emailed to you, set up a Postmark account and set thse:
+If you want to get zip files of talks + transcripts emailed to you, set up a Postmark account and set these:
 
 POSTMARK_API_KEY=
 
