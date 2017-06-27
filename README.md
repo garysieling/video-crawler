@@ -26,3 +26,13 @@ POSTMARK_API_KEY=
 POSTMARK_BCC=
 
 POSTMARK_REPLY_TO=
+
+Example:
+
+TalkToMarkdown "https://www.youtube.com/watch?v=YME2eyde38A&feature=youtu.be" 
+
+Use this if you want to convert a Youtube video to a markdown / blog post format.
+
+MetadataCrawler "test.js"
+
+Use this if you're crawling a site.
