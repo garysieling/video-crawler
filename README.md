@@ -31,8 +31,11 @@ Examples:
 ========
 
 I run these through Intellij
+
 *TalkToMarkdown*
+
 _args:_ https://www.youtube.com/watch?v=YME2eyde38A&feature=youtu.be
+
 _environment variables required:_ FFMPEG, YOUTUBE_DL
 
 Use this if you want to convert a Youtube video to a markdown / blog post format.
