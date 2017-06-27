@@ -27,7 +27,8 @@ POSTMARK_BCC=
 
 POSTMARK_REPLY_TO=
 
-Example:
+Examples:
+========
 
 TalkToMarkdown "https://www.youtube.com/watch?v=YME2eyde38A&feature=youtu.be" 
 
