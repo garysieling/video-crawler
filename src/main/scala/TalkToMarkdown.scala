@@ -15,7 +15,8 @@ object TalkToMarkdown {
 
     cmd.withTempDirectory[Unit](
       (dir) => {
-        val id = urls.ytId("https://www.youtube.com/watch?v=YME2eyde38A&feature=youtu.be").get
+        // "https://www.youtube.com/watch?v=YME2eyde38A&feature=youtu.be"
+        val id = urls.ytId(args(0)).get
         val url = urls.ytUrl(id)
 
         // TODO add a concept of a cacheable operation
@@ -78,6 +79,7 @@ object TalkToMarkdown {
           cmd.save(dir, "text.md", md.toString)
           cmd.zip(dir, id.value + ".zip", List("text.md"))
 
+          // This only sends emails if there is an API key
           cmd.email(
             "gary@garysieling.com",
             "gary@garysieling.com",
