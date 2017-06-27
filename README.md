@@ -1,7 +1,7 @@
 # video-crawler
 Crawl websites for videos from Youtube, Vimeo, Soundcloud, etc
 
-Pre-requisites:
+Prerequisites:
 - youtube-dl
 - Node.js
 - curl
