@@ -10,4 +10,9 @@ libraryDependencies += "com.github.crawler-commons" % "crawler-commons" % "0.7"
 libraryDependencies += "com.github.sebrichards" %% "postmark-scala" % "1.3"
 libraryDependencies += "org.apache.opennlp" % "opennlp-tools" % "1.8.0"
 
+resolvers += "jCenter" at "https://jcenter.bintray.com"
+
+libraryDependencies += "net.dean.jraw" % "JRAW" % "0.9.0"
+libraryDependencies += "org.rogach" %% "scallop" % "3.0.3"
+
 scalaVersion := "2.12.2"
