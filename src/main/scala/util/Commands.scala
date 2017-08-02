@@ -158,15 +158,26 @@ class Commands {
     parseJson(directory.value + slash + "v" + url.id.value + ".info.json")
   }
 
-  def curl(directory: Directory)(url: String, filename: String): String = {
+  def curl(directory: Directory)(url: String, filename: String, timeout: Integer = 30): String = {
     import scala.sys.process._
 
     val command =
-      CURL + "-o  \"" + directory.value + File.separator + filename + "\" \"" + url + "\""
+      CURL +
+        " --connect-timeout " + timeout +
+        " --max-time " + timeout +
+        " -o  \"" + directory.value + File.separator + filename + "\" \"" + url + "\""
 
     println(command)
 
-    command.!!
+    try {
+      command.!!
+    } catch {
+      case e: Exception => {
+        e.printStackTrace()
+
+        ""
+      }
+    }
   }
 
   def load(dir: Directory, file: String): Iterator[String] = {
@@ -263,6 +274,7 @@ class Commands {
   }
 
   def text(dir: Directory, file: String) = {
+    // TODO this could also use TIKA, it would be good to compare
     this.node("text.js", List(dir.value + slash + file))
   }
 }

@@ -7,8 +7,8 @@ import org.json.JSONObject
 import scala.collection.JavaConversions._
 import scala.collection.parallel.ForkJoinTaskSupport
 
-object LoadSolr {
-  val solrUrl = "http://localhost:8983/solr/talks";
+class Solr(core: String) {
+  val solrUrl = "http://localhost:8983/solr/" + core
   val solr = new HttpSolrClient(solrUrl)
 
   def first(document: JSONObject, strings: Seq[String]) = {
@@ -23,6 +23,14 @@ object LoadSolr {
     ).headOption map {
       document.get(_)
     }
+  }
+
+  def indexDocument(doc: SolrInputDocument) = {
+    solr.add(doc)
+  }
+
+  def commit = {
+    solr.commit()
   }
 
   def indexFile(file: File): Unit = {
