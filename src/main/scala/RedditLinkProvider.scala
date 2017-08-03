@@ -5,7 +5,7 @@ import net.dean.jraw.models.Submission
 import net.dean.jraw.paginators.SubredditPaginator
 import org.apache.solr.common.SolrInputDocument
 import org.rogach.scallop.ScallopConf
-import util.{Commands, Directory}
+import util.{Commands, Directory, NLP, Semantic}
 
 /**
   * Created by gary on 8/1/2017.
@@ -16,6 +16,7 @@ class RedditConf(arguments: Seq[String]) extends ScallopConf(arguments) {
   val clientId = opt[String](required = true)
   val secret = opt[String](required = true)
   val platform = opt[String](required = true)
+  val modelPath = opt[String](required = true)
 
   verify()
 }
@@ -72,6 +73,9 @@ class RedditLinkProvider(directory: Directory, conf: RedditConf, subreddits: Lis
 
     val firstPage = paginator.next().toArray()
 
+    val w2v = new Semantic(conf.modelPath.toOption.get)
+    w2v.init
+
     // Iterate over the submissions
     val posts: Array[Post] =
       firstPage.flatMap(
@@ -110,7 +114,13 @@ class RedditLinkProvider(directory: Directory, conf: RedditConf, subreddits: Lis
         val text = cmd.text(directory, file)
 
         val sid = new SolrInputDocument()
-        sid.setField("article", text)
+
+        // TODO store original + new
+        // TODO store when this was retrieved
+        // TODO tag dbpedia entities
+
+        var cleanText = NLP.cleanText(text)
+        sid.setField("article", cleanText)
         sid.setField("url", data._1.url)
         sid.setField("comments", data._1.comments)
         sid.setField("domain", data._1.domain)
@@ -127,8 +137,15 @@ class RedditLinkProvider(directory: Directory, conf: RedditConf, subreddits: Lis
         )
 
         solrClient.commit
+        w2v.close()
+
+        val sentences = NLP.getSentences(cleanText)
+        w2v.train(sentences)
         // TODO write this to solr
         // TODO add this to word2vec
       })
+    
+      w2v.close()
+
   }
 }

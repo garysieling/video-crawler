@@ -10,6 +10,10 @@ libraryDependencies += "com.github.crawler-commons" % "crawler-commons" % "0.7"
 libraryDependencies += "com.github.sebrichards" %% "postmark-scala" % "1.3"
 libraryDependencies += "org.apache.opennlp" % "opennlp-tools" % "1.8.0"
 
+libraryDependencies += "org.nd4j" % "nd4j-native-platform" % "0.8.0"
+libraryDependencies += "org.deeplearning4j" % "deeplearning4j-core" % "0.8.0"
+libraryDependencies += "org.deeplearning4j" % "deeplearning4j-nlp" % "0.8.0"
+
 resolvers += "jCenter" at "https://jcenter.bintray.com"
 
 libraryDependencies += "net.dean.jraw" % "JRAW" % "0.9.0"
