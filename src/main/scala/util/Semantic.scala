@@ -28,7 +28,7 @@ class Semantic(modelPath: String) {
         val cache = new InMemoryLookupCache()
 
         val table = new InMemoryLookupTable.Builder[VocabWord]()
-          .vectorLength(300)
+          .vectorLength(100)
           .useAdaGrad(false)
           .cache(cache)
           .lr(0.025f).build()

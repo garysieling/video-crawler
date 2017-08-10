@@ -93,14 +93,22 @@ class Commands {
     println(entireCommand)
 
     // TODO configurable
-    val output = Process(
-      entireCommand,
-      new File("D:\\projects\\scala-indexer\\src\\main\\resources\\")
-    ).!! // TODO errors should not throw here
+    try {
+      val output = Process(
+        entireCommand,
+        new File("D:\\projects\\scala-indexer\\src\\main\\resources\\")
+      ).!! // TODO errors should not throw here
 
-    println(output)
+      //println(output)
 
-    output
+      output
+    }  catch {
+      case (e: Exception) => {
+        e.printStackTrace()
+
+        ""
+      }
+    }
   }
 
   def vttToSrt(dir: Directory)(id: YtId): Iterable[LogEntry] = {
