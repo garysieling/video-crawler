@@ -20,3 +20,7 @@ libraryDependencies += "net.dean.jraw" % "JRAW" % "0.9.0"
 libraryDependencies += "org.rogach" %% "scallop" % "3.0.3"
 
 scalaVersion := "2.12.2"
+
+import com.github.retronym.SbtOneJar._
+
+oneJarSettings

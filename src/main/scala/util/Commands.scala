@@ -55,6 +55,13 @@ class Commands {
       case None => "curl"
     }
 
+  val RESOURCES =
+    sys.env.get("RESOURCES") match {
+      case Some(x: String) => x
+      case None => "D:\\projects\\scala-indexer\\src\\main\\resources\\"
+    }
+
+
   val slash = java.io.File.separator
   val quote = slash match {
     case "/" => ""
@@ -96,7 +103,7 @@ class Commands {
     try {
       val output = Process(
         entireCommand,
-        new File("D:\\projects\\scala-indexer\\src\\main\\resources\\")
+        new File(RESOURCES)
       ).!! // TODO errors should not throw here
 
       //println(output)
