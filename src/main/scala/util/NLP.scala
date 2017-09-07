@@ -4,6 +4,7 @@ import java.text.BreakIterator
 import java.util.Locale
 
 import com.telmomenezes.jfastemd._
+import org.deeplearning4j.models.word2vec.Word2Vec
 import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.factory.Nd4j
 
@@ -106,7 +107,7 @@ object NLP {
     }
   }
 
-  def getDistance(query: String, title: String, document: String, w2v: Semantic): Option[Double] = {
+  def getDistance(query: String, title: String, document: String, model: Word2Vec): Option[Double] = {
     // TODO cache document
 
     //val queryWords =  //cache2(query, () => getWords(query))
@@ -116,8 +117,6 @@ object NLP {
     // NEXT STEP: load lucene directly
     val allWords = getWords(document)
 
-    val model = w2v.model.getOrElse(???)
-
     val queryMatrix: List[Feature] =
       cache1(
         query,
@@ -126,15 +125,8 @@ object NLP {
         ).filter(
           _ != null
         ).map(
-          (w: Array[Double]) => {
-            val arr: INDArray = Nd4j.create(w)
-
-            ///val s = new com.telmomenezes.jfastemd.Signature()
-            //s.setWeights(w)
-
-            //s
-            new FeatureND(arr)
-          }
+          (w: Array[Double]) =>
+            new FeatureND(Nd4j.create(w))
         )
       )
 
@@ -168,14 +160,14 @@ object NLP {
       ).toArray)
       s2.setWeights(documentWeights)
 
-
-      val distance = JFastEMD.distance(
-        s1,
-        s2,
-        0 // TODo
+      Some(
+        JFastEMD.distance(
+          s1,
+          s2,
+          0 // TODo
+        )
       )
 
-      Some(distance)
     } else {
       None
     }

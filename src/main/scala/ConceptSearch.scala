@@ -115,7 +115,7 @@ object ConceptSearch {
           "artificial intelligence, machine learning, python",
           fileData._1,
           fileData._2,
-          w2v
+          model
         )
 
         distanceOpt match {
