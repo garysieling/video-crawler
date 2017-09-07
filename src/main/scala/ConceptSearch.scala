@@ -93,6 +93,7 @@ object ConceptSearch {
     // Move cache a little bit      2.935605281885032
     // Switch to nd4j               2.7937422869698705
     // Another change to caching    2.8428153570498784
+    // Slight delay in computations 2.876336421952958
 
     var toBeat = 1000000000.0
 

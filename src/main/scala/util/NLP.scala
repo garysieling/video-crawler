@@ -117,7 +117,7 @@ object NLP {
     val allWords = getWords(document)
 
     val model = w2v.model.getOrElse(???)
-/*
+
     val queryMatrix: List[Feature] =
       cache1(
         query,
@@ -138,37 +138,37 @@ object NLP {
         )
       )
 
-    // TODO
-    val queryWeights = queryMatrix.map( _ => 1.0 ).toArray
-    //queryMatrix.map(getWeight(_.getWord)).toArray
-
-    import scala.collection.JavaConversions._
-
-    val s1 = new Signature()
-    s1.setNumberOfFeatures(queryMatrix.size)
-    s1.setFeatures(queryMatrix.toArray)
-    s1.setWeights(queryWeights)
-
-    val documentMatrix: List[Feature] =
+    val documentMatrix =
       allWords.map(
         model.getWordVector(_)
       ).filter(
         _ != null
-      ).map(
+      )
+
+    if (documentMatrix.length > queryMatrix.size) {
+      val documentWeights = allWords.map(getWeight).toArray
+
+      // TODO
+      val queryWeights = queryMatrix.map( _ => 1.0 ).toArray
+      //queryMatrix.map(getWeight(_.getWord)).toArray
+
+      import scala.collection.JavaConversions._
+
+      val s1 = new Signature()
+      s1.setNumberOfFeatures(queryMatrix.size)
+      s1.setFeatures(queryMatrix.toArray)
+      s1.setWeights(queryWeights)
+
+      val s2 = new Signature()
+      s2.setNumberOfFeatures(documentMatrix.size)
+      s2.setFeatures(documentMatrix.map(
         (w: Array[Double]) => {
           new FeatureND(Nd4j.create(w))
         }
-      )
-
-    val documentWeights = allWords.map(getWeight).toArray
-
-    val s2 = new Signature()
-    s2.setNumberOfFeatures(documentMatrix.size)
-    s2.setFeatures(documentMatrix.toArray)
-    s2.setWeights(documentWeights)
+      ).toArray)
+      s2.setWeights(documentWeights)
 
 
-    if (documentMatrix.length > queryMatrix.size) {
       val distance = JFastEMD.distance(
         s1,
         s2,
@@ -178,9 +178,7 @@ object NLP {
       Some(distance)
     } else {
       None
-    }*/
-
-    Some(1.0)
+    }
 
     //println(title)
     //println(distance)
