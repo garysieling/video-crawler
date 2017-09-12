@@ -13,6 +13,13 @@ case class Directory(value: String)
 case class LogEntry(value: String)
 
 class Commands {
+  val QUOTE =
+    if (System.getProperty("os.name") == "Windows") {
+      "\""
+    } else {
+      ""
+    }
+
   val FFMPEG =
     sys.env.get("FFMPEG") match {
       case Some(x: String) => x
@@ -180,7 +187,7 @@ class Commands {
       CURL +
         " --connect-timeout " + timeout +
         " --max-time " + timeout +
-        " -o  \"" + directory.value + File.separator + filename + "\" \"" + url + "\""
+        " -o  " + QUOTE + directory.value + File.separator + filename + QUOTE + " " + QUOTE + url + QUOTE
 
     println(command)
 

@@ -212,7 +212,14 @@ class RedditLinkProvider(directory: Directory, conf: RedditConf, subreddits: Lis
       val newUrl = new Regex("^(http:|https:)", "i").replaceAllIn(url, "")
 
       val nohash = newUrl.split("#")(0)
-      val firstUrl = nohash.split("[?]")(0) // remove url params
+
+
+      val firstUrl =
+        if (newUrl.indexOf("youtube") > 0) {
+          newUrl
+        } else {
+          nohash.split("[?]")(0) // remove url params
+        }
 
       firstUrl
     }
@@ -334,7 +341,7 @@ class RedditLinkProvider(directory: Directory, conf: RedditConf, subreddits: Lis
             sid.setField("points", points)
             sid.setField("author", data._1.author)
             sid.setField("id", id)
-            sid.setField("weekoftime", startTime.weekyear().get())
+            sid.setField("weekoftime", startTime.weekyear().get() * 52 + startTime.weekOfWeekyear().get())
 
             solrClient.indexDocument(
               sid
