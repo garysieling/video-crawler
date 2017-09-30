@@ -1,6 +1,8 @@
 # video-crawler
 Crawl websites for videos from Youtube, Vimeo, Soundcloud, etc
 
+I use this to get videos for https://www.findlectures.com, and articles for personalized newsletters (https://www.findlectures.com/form?type=alert).
+
 Prerequisites:
 - youtube-dl
 - Node.js
