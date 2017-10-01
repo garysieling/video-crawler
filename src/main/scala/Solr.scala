@@ -25,6 +25,16 @@ class Solr(core: String) {
     }
   }
 
+  def exists(id: String) = {
+    try {
+      solr.getById(id)
+
+      true
+    } catch {
+      case e: Exception => false
+    }
+  }
+
   def indexDocument(doc: SolrInputDocument) = {
     solr.add(doc)
   }
