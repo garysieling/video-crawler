@@ -1,8 +1,11 @@
 package util
 
-import java.io.{BufferedReader, File, FileReader}
+import java.io.{BufferedReader, File, FileInputStream, FileReader}
 import java.net.URI
 import java.nio.file.{FileSystems, Files, Paths}
+
+import org.apache.tika.metadata.{Metadata, TikaCoreProperties}
+import org.apache.tika.parser.{AutoDetectParser, ParseContext}
 
 import scala.io.Source
 
@@ -185,7 +188,7 @@ class Commands {
 
     val command =
       CURL +
-        " --connect-timeout " + timeout +
+        " -L --connect-timeout " + timeout +
         " --max-time " + timeout +
         " -o  " + QUOTE + directory.value + File.separator + filename + QUOTE + " " + QUOTE + url + QUOTE
 
@@ -298,5 +301,19 @@ class Commands {
   def text(dir: Directory, file: String) = {
     // TODO this could also use TIKA, it would be good to compare
     this.node("text.js", List(dir.value + slash + file))
+  }
+
+  def title(file: String) = {
+    import org.apache.tika.sax.BodyContentHandler
+
+    val input = new FileInputStream(file)
+    val handler = new BodyContentHandler()
+
+    val metadata = new Metadata()
+    val parser = new AutoDetectParser()
+    val context = new ParseContext()
+    parser.parse(input, handler, metadata, context)
+
+    (metadata.get(TikaCoreProperties.TITLE), handler.toString)
   }
 }

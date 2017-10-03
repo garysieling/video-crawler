@@ -1,15 +1,17 @@
 import java.net.SocketTimeoutException
 import java.security.MessageDigest
+import java.util.{Calendar, Date}
 
 import net.dean.jraw.RedditClient
 import net.dean.jraw.http._
 import net.dean.jraw.http.oauth.Credentials
 import net.dean.jraw.models.Submission
-import net.dean.jraw.paginators.{Sorting, SubredditPaginator}
+import net.dean.jraw.paginators.{Sorting, SubredditPaginator, TimePeriod}
 import org.apache.solr.common.SolrInputDocument
 import org.joda.time.DateTime
 import org.rogach.scallop.ScallopConf
 import util.{Commands, Directory, NLP, Semantic}
+import java.util
 
 import scala.util.Try
 import scala.util.Success
@@ -47,23 +49,9 @@ object RedditLinkProvider {
     val conf = new RedditConf(args)
 
     val cmd = new Commands
-    for (i <- 1 until 100)
-    {
       cmd.withTempDirectory(
         new RedditLinkProvider(_, conf,
           List(
-            "programmming",
-            "javascript",
-            // Clojurescript // too small
-            // datomic // too small
-            // functionalprogramming // too small
-            "clojure",
-            "algorithms",
-            "compsci",
-            "python",
-            "coding",
-            "javascript",
-            "MachineLearning",
             "crypto",
             "computervision",
             "LanguageTechnology",
@@ -77,6 +65,18 @@ object RedditLinkProvider {
             "systems",
             "kernel",
             "php",
+            "programmming",
+            "javascript",
+            // Clojurescript // too small
+            // datomic // too small
+            // functionalprogramming // too small
+            "clojure",
+            "algorithms",
+            "compsci",
+            "python",
+            "coding",
+            "javascript",
+            "MachineLearning",
             "osdev",
             "cpp",
             "csharp",
@@ -189,16 +189,223 @@ object RedditLinkProvider {
           )
         ).run
       )
-    }
   }
 }
 
 class RedditLinkProvider(directory: Directory, conf: RedditConf, subreddits: List[String]) {
-  val version = "1.0.0"
+  val version = "1.1.0"
+  val startTime = new DateTime()
+
+  def cleanUrl(url: String): String = {
+    val newUrl = new Regex("^(http://|https://)", "i").replaceAllIn(url, "")
+
+    val nohash = newUrl.split("#")(0)
+
+
+    val firstUrl =
+      if (newUrl.indexOf("youtube") > 0) {
+        newUrl
+      } else {
+        nohash.split("[?]")(0) // remove url params
+      }
+
+    firstUrl
+  }
+
+  def getDateRange(start: DateTime, end: DateTime): List[DateTime] = {
+    import scala.collection.JavaConversions._
+
+    val ret: util.ArrayList[DateTime] = new util.ArrayList[DateTime]()
+
+    var tmp: DateTime = start
+
+    while(tmp.isBefore(end) || tmp.equals(end)) {
+      ret.add(tmp)
+      tmp = tmp.plusDays(1)
+    }
+
+    ret.toList
+  }
+
+  def loadSubreddit(solrClient: Solr, subreddit: String, redditClient: RedditClient) = {
+    var i = 0
+
+    val paginator = new SubredditPaginator(redditClient, subreddit)
+    paginator.setSorting(Sorting.TOP)
+    paginator.setTimePeriod(TimePeriod.MONTH)
+
+    var j = 0
+    var done = false
+    while (j < 100 && !done) {
+      println("j: " + j)
+
+      j = j + 1
+      val firstPage = paginator.next().toArray()
+      done = paginator.hasNext
+
+      // Iterate over the submissions
+      firstPage.flatMap(
+        s => {
+          s match {
+            case (submission: Submission) => {
+              try {
+                val selfPost: Boolean = {
+                  try {
+                    submission.isSelfPost
+                  } catch {
+                    case (e: Exception) => {
+                      println(submission.getUrl)
+
+                      false
+                    }
+                  }
+                }
+
+                if (!selfPost) {
+                  if (
+                    !submission.getUrl.contains("imgur.com") &&
+                      !submission.getUrl.contains("instsgram.com")
+                  ) {
+                    Some(
+                      Post(
+                        comments = submission.getCommentCount,
+                        domain = submission.getDomain,
+                        removalReason = submission.getRemovalReason,
+                        title = submission.getTitle,
+                        permalink = submission.getPermalink,
+                        created = submission.getCreated,
+                        score = submission.getScore,
+                        url = submission.getUrl,
+                        author = submission.getAuthor
+                      )
+                    )
+                  } else {
+                    None
+                  }
+                } else {
+                  None
+                }
+              } catch {
+                case (e: Exception) => {
+                  println(submission.getDataNode.toString)
+
+                  e.printStackTrace()
+
+                  None
+                }
+              }
+            }
+            case _ => ???
+          }
+        }
+      ).toList.filter(
+        (post) => {
+          try {
+            !post.url.toLowerCase.endsWith(".pdf") &&
+              !post.url.toLowerCase.endsWith(".png") &&
+              !post.url.toLowerCase.endsWith(".gif") &&
+              !post.url.toLowerCase.endsWith(".jpg") &&
+              !post.url.toLowerCase.endsWith(".jpeg") &&
+              !post.url.toLowerCase.endsWith(".wav") &&
+              !post.url.toLowerCase.endsWith(".mp3") &&
+              !post.url.toLowerCase.endsWith(".flv") &&
+              !post.url.toLowerCase.endsWith(".tiff") &&
+              !post.url.toLowerCase.endsWith(".mp4")
+          } catch {
+            case (e: Exception) => {
+              println(e)
+              false
+            }
+          }
+        }
+      ).filter(
+        (data) => {
+          //val shorterUrl = cleanUrl(data.url)
+          //!solrClient.exists(shorterUrl)
+          true
+        }
+      ).zipWithIndex.map((data) => {
+        // TODO store original + new
+        // TODO store when this was retrieved
+        // TODO tag dbpedia entities
+
+        val comments = data._1.comments
+        val points = data._1.score
+
+        if (comments + points > 5 ||
+          (subreddit == "hackernews" && data._1.author == "qznc_bot")) {
+          val cmd = new Commands
+          val file = data._2 + ".html"
+          cmd.curl(directory)(data._1.url, file, 10)
+
+          //val text = cmd.text(directory, file)
+
+          val sid = new SolrInputDocument()
+
+          val articleTitleAndText = cmd.title(directory.value + "\\" + file)
+
+          val cleanText = NLP.cleanText(articleTitleAndText._2)
+          println(cleanText)
+
+          val shorterUrl = cleanUrl(data._1.url)
+
+          val id = new String(shorterUrl)
+
+          sid.setField("article", cleanText)
+          sid.setField("cleanUrl", shorterUrl)
+          sid.setField("subreddit", subreddit)
+          sid.setField("comments", comments)
+
+          if (data._1 != null) {
+            sid.setField("domain", data._1.domain)
+            sid.setField("removalReason", data._1.removalReason)
+            sid.setField("reddit_title", data._1.title)
+            sid.setField("created", data._1.created)
+            sid.setField("weekoftime", data._1.created.getTime / 1000 / 3600 / 24 / 7)
+            sid.setField("dayoftime", data._1.created.getTime / 1000 / 3600 / 24)
+            sid.setField("url", data._1.url)
+            sid.setField("author", data._1.author)
+            sid.setField("url", data._1.url)
+          }
+
+          if (articleTitleAndText._1 != null) {
+            sid.setField("article_title", articleTitleAndText._1)
+          }
+
+          sid.setField("points", points)
+          sid.setField("id", id)
+          sid.setField("weekoftime", startTime.weekyear().get() * 52 + startTime.weekOfWeekyear().get())
+
+          solrClient.indexDocument(
+            sid
+          )
+
+          i = i + 1
+
+          println(" ******************** " + i)
+
+          if (i % 100 == 0) {
+            solrClient.commit
+          }
+        }
+        //w2v.close()
+
+        //println("getting sentences")
+        //val sentences = NLP.getSentences(cleanText)
+
+        //println("training word2vec")
+        //w2v.train(sentences)
+        //println("word2vec updated")
+
+        // TODO write this to solr
+        // TODO add this to word2vec
+      })
+    }
+
+    solrClient.commit
+  }
 
   def run = {
-    val startTime = new DateTime()
-
     val myUserAgent = UserAgent.of(
       conf.platform.getOrElse(???),
       conf.clientId.getOrElse(???),
@@ -217,197 +424,39 @@ class RedditLinkProvider(directory: Directory, conf: RedditConf, subreddits: Lis
     val authData = redditClient.getOAuthHelper().easyAuth(credentials)
     redditClient.authenticate(authData)
 
-
     //val w2v = new Semantic(conf.modelPath.toOption.get)
     //w2v.init
-
-    def cleanUrl(url: String): String = {
-      val newUrl = new Regex("^(http://|https://)", "i").replaceAllIn(url, "")
-
-      val nohash = newUrl.split("#")(0)
-
-
-      val firstUrl =
-        if (newUrl.indexOf("youtube") > 0) {
-          newUrl
-        } else {
-          nohash.split("[?]")(0) // remove url params
-        }
-
-      firstUrl
-    }
 
     var i = 0
     val solrClient = new Solr("articles")
 
-    subreddits.par.map(
+    /*getDateRange(new DateTime().minusDays(730), new DateTime()).reverse.map(
+      (date: DateTime) => {
+        val paginator = new SubredditPaginator(redditClient, subreddit)
+        paginator.setSorting(Sorting.TOP)
+        paginator.set
+      }
+    )*/
+
+    println(subreddits)
+
+    subreddits.map(
       (subreddit) => {
+        println("Subreddit: " + subreddit)
         try {
-          val paginator = new SubredditPaginator(redditClient, subreddit)
-          paginator.setSorting(Sorting.TOP)
-
-          var j = 0
-          var done = false
-          while (j < 100 || done) {
-            j = j + 1
-            val firstPage = paginator.next().toArray()
-            done = paginator.hasNext
-
-            // Iterate over the submissions
-            val posts: Array[Post] =
-              firstPage.flatMap(
-                s => {
-                  s match {
-                    case (submission: Submission) => {
-                      try {
-                        val selfPost: Boolean = {
-                          try {
-                            submission.isSelfPost
-                          } catch {
-                            case (e: Exception) => {
-                              println(submission.getUrl)
-
-                              false
-                            }
-                          }
-                        }
-
-                        if (!selfPost) {
-                          if (
-                            !submission.getUrl.contains("imgur.com") &&
-                              !submission.getUrl.contains("instsgram.com")
-                          ) {
-                            Some(
-                              Post(
-                                comments = submission.getCommentCount,
-                                domain = submission.getDomain,
-                                removalReason = submission.getRemovalReason,
-                                title = submission.getTitle,
-                                permalink = submission.getPermalink,
-                                created = submission.getCreated,
-                                score = submission.getScore,
-                                url = submission.getUrl,
-                                author = submission.getAuthor
-                              )
-                            )
-                          } else {
-                            None
-                          }
-                        } else {
-                          None
-                        }
-                      } catch {
-                        case (e: Exception) => {
-                          println(submission.getDataNode.toString)
-
-                          e.printStackTrace()
-
-                          None
-                        }
-                      }
-                    }
-                    case _ => ???
-                  }
-                }
-              )
-
-            posts.filter(
-              (post) => {
-                try {
-                  !post.url.toLowerCase.endsWith(".pdf") &&
-                    !post.url.toLowerCase.endsWith(".png") &&
-                    !post.url.toLowerCase.endsWith(".gif") &&
-                    !post.url.toLowerCase.endsWith(".jpg") &&
-                    !post.url.toLowerCase.endsWith(".jpeg") &&
-                    !post.url.toLowerCase.endsWith(".wav") &&
-                    !post.url.toLowerCase.endsWith(".mp3") &&
-                    !post.url.toLowerCase.endsWith(".flv") &&
-                    !post.url.toLowerCase.endsWith(".tiff") &&
-                    !post.url.toLowerCase.endsWith(".mp4")
-                } catch {
-                  case (e: Exception) => {
-                    false
-                  }
-                }
-              }
-            ).filter(
-              (data) => {
-                val shorterUrl = cleanUrl(data.url)
-                !solrClient.exists(shorterUrl)
-              }
-            ).zipWithIndex.map((data) => {
-              // TODO store original + new
-              // TODO store when this was retrieved
-              // TODO tag dbpedia entities
-
-              val comments = data._1.comments
-              val points = data._1.score
-
-              if (comments + points > 5 ||
-                (subreddit == "hackernews" && data._1.author == "qznc_bot")) {
-                val cmd = new Commands
-                val file = data._2 + ".html"
-                cmd.curl(directory)(data._1.url, file, 10)
-
-                val text = cmd.text(directory, file)
-
-                val sid = new SolrInputDocument()
-
-                val cleanText = NLP.cleanText(text)
-                println(cleanText)
-
-                val shorterUrl = cleanUrl(data._1.url)
-
-                val id = new String(shorterUrl)
-
-                sid.setField("article", cleanText)
-                sid.setField("url", data._1.url)
-                sid.setField("cleanUrl", shorterUrl)
-                sid.setField("subreddit", subreddit)
-                sid.setField("comments", comments)
-                sid.setField("domain", data._1.domain)
-                sid.setField("removalReason", data._1.removalReason)
-                sid.setField("title", data._1.title)
-                sid.setField("created", data._1.created)
-                sid.setField("weekoftime", data._1.created.getTime / 1000 / 3600 / 24 / 7)
-                sid.setField("dayoftime", data._1.created.getTime / 1000 / 3600 / 24)
-                sid.setField("url", data._1.url)
-                sid.setField("points", points)
-                sid.setField("author", data._1.author)
-                sid.setField("id", id)
-                sid.setField("weekoftime", startTime.weekyear().get() * 52 + startTime.weekOfWeekyear().get())
-
-                solrClient.indexDocument(
-                  sid
-                )
-
-                i = i + 1
-
-                println(" ******************** " + i)
-
-                if (i % 100 == 0) {
-                  solrClient.commit
-                }
-              }
-              //w2v.close()
-
-              //println("getting sentences")
-              //val sentences = NLP.getSentences(cleanText)
-
-              //println("training word2vec")
-              //w2v.train(sentences)
-              //println("word2vec updated")
-
-              // TODO write this to solr
-              // TODO add this to word2vec
-            })
-          }
+          loadSubreddit(solrClient, subreddit, redditClient)
         } catch {
           case e: NetworkException => {
             e.printStackTrace();
           }
           case e: SocketTimeoutException => {
             e.printStackTrace();
+          }
+          case e: NullPointerException => {
+            e.printStackTrace()
+          }
+          case e: Error => {
+            println(e)
           }
         }
       }
