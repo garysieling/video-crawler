@@ -1,3 +1,4 @@
+import java.io.FileNotFoundException
 import java.net.SocketTimeoutException
 import java.security.MessageDigest
 import java.util.{Calendar, Date}
@@ -232,11 +233,11 @@ class RedditLinkProvider(directory: Directory, conf: RedditConf, subreddits: Lis
 
     val paginator = new SubredditPaginator(redditClient, subreddit)
     paginator.setSorting(Sorting.TOP)
-    paginator.setTimePeriod(TimePeriod.MONTH)
+    paginator.setTimePeriod(TimePeriod.ALL)
 
     var j = 0
     var done = false
-    while (j < 100 && !done) {
+    while (j < 5000 && !done) {
       println("j: " + j)
 
       j = j + 1
@@ -324,81 +325,87 @@ class RedditLinkProvider(directory: Directory, conf: RedditConf, subreddits: Lis
           //!solrClient.exists(shorterUrl)
           true
         }
-      ).zipWithIndex.map((data) => {
-        // TODO store original + new
-        // TODO store when this was retrieved
-        // TODO tag dbpedia entities
+      ).zipWithIndex.par.map((data) => {
+        try {
+          // TODO store original + new
+          // TODO store when this was retrieved
+          // TODO tag dbpedia entities
 
-        val comments = data._1.comments
-        val points = data._1.score
+          val comments = data._1.comments
+          val points = data._1.score
 
-        if (comments + points > 5 ||
-          (subreddit == "hackernews" && data._1.author == "qznc_bot")) {
-          val cmd = new Commands
-          val file = data._2 + ".html"
-          cmd.curl(directory)(data._1.url, file, 10)
+          if (comments + points > 5 ||
+            (subreddit == "hackernews" && data._1.author == "qznc_bot")) {
+            val cmd = new Commands
+            val file = data._2 + ".html"
+            cmd.curl(directory)(data._1.url, file, 10)
 
-          //val text = cmd.text(directory, file)
+            //val text = cmd.text(directory, file)
 
-          val sid = new SolrInputDocument()
+            val sid = new SolrInputDocument()
 
-          val articleTitleAndText = cmd.title(directory.value + "\\" + file)
+            val articleTitleAndText = cmd.title(directory.value + "\\" + file)
 
-          val cleanText = NLP.cleanText(articleTitleAndText._2)
-          println(cleanText)
+            val cleanText = NLP.cleanText(articleTitleAndText._2)
+            println(cleanText)
 
-          val shorterUrl = cleanUrl(data._1.url)
+            val shorterUrl = cleanUrl(data._1.url)
 
-          val id = new String(shorterUrl)
+            val id = new String(shorterUrl)
 
-          sid.setField("article", cleanText)
-          sid.setField("cleanUrl", shorterUrl)
-          sid.setField("subreddit", subreddit)
-          sid.setField("comments", comments)
+            sid.setField("article", cleanText)
+            sid.setField("cleanUrl", shorterUrl)
+            sid.setField("subreddit", subreddit)
+            sid.setField("comments", comments)
 
-          if (data._1 != null) {
-            sid.setField("domain", data._1.domain)
-            sid.setField("removalReason", data._1.removalReason)
-            sid.setField("reddit_title", data._1.title)
-            sid.setField("created", data._1.created)
-            sid.setField("weekoftime", data._1.created.getTime / 1000 / 3600 / 24 / 7)
-            sid.setField("dayoftime", data._1.created.getTime / 1000 / 3600 / 24)
-            sid.setField("url", data._1.url)
-            sid.setField("author", data._1.author)
-            sid.setField("url", data._1.url)
+            if (data._1 != null) {
+              sid.setField("domain", data._1.domain)
+              sid.setField("removalReason", data._1.removalReason)
+              sid.setField("reddit_title", data._1.title)
+              sid.setField("created", data._1.created)
+              sid.setField("weekoftime", data._1.created.getTime / 1000 / 3600 / 24 / 7)
+              sid.setField("dayoftime", data._1.created.getTime / 1000 / 3600 / 24)
+              sid.setField("url", data._1.url)
+              sid.setField("author", data._1.author)
+              sid.setField("url", data._1.url)
+            }
+
+            if (articleTitleAndText._1 != null) {
+              sid.setField("article_title", articleTitleAndText._1)
+            }
+
+            sid.setField("points", points)
+            sid.setField("id", id)
+            sid.setField("weekoftime", startTime.weekyear().get() * 52 + startTime.weekOfWeekyear().get())
+
+            solrClient.indexDocument(
+              sid
+            )
+
+            i = i + 1
+
+            println(" ******************** " + i)
+
+            if (i % 100 == 0) {
+              solrClient.commit
+            }
           }
+          //w2v.close()
 
-          if (articleTitleAndText._1 != null) {
-            sid.setField("article_title", articleTitleAndText._1)
-          }
+          //println("getting sentences")
+          //val sentences = NLP.getSentences(cleanText)
 
-          sid.setField("points", points)
-          sid.setField("id", id)
-          sid.setField("weekoftime", startTime.weekyear().get() * 52 + startTime.weekOfWeekyear().get())
+          //println("training word2vec")
+          //w2v.train(sentences)
+          //println("word2vec updated")
 
-          solrClient.indexDocument(
-            sid
-          )
-
-          i = i + 1
-
-          println(" ******************** " + i)
-
-          if (i % 100 == 0) {
-            solrClient.commit
+          // TODO write this to solr
+          // TODO add this to word2vec
+        } catch {
+          case e: FileNotFoundException => {
+            println(e)
           }
         }
-        //w2v.close()
-
-        //println("getting sentences")
-        //val sentences = NLP.getSentences(cleanText)
-
-        //println("training word2vec")
-        //w2v.train(sentences)
-        //println("word2vec updated")
-
-        // TODO write this to solr
-        // TODO add this to word2vec
       })
     }
 
@@ -440,7 +447,7 @@ class RedditLinkProvider(directory: Directory, conf: RedditConf, subreddits: Lis
 
     println(subreddits)
 
-    subreddits.map(
+    subreddits.par.map(
       (subreddit) => {
         println("Subreddit: " + subreddit)
         try {
