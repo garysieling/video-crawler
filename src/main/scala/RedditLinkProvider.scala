@@ -340,13 +340,13 @@ class RedditLinkProvider(directory: Directory, conf: RedditConf, subreddits: Lis
             val file = data._2 + ".html"
             cmd.curl(directory)(data._1.url, file, 10)
 
-            //val text = cmd.text(directory, file)
+            val text = cmd.text(directory, file)
 
             val sid = new SolrInputDocument()
 
-            val articleTitleAndText = cmd.title(directory.value + "\\" + file)
+            //val articleTitleAndText = cmd.title(directory.value + "\\" + file)
 
-            val cleanText = NLP.cleanText(articleTitleAndText._2)
+            val cleanText = NLP.cleanText(text)
             println(cleanText)
 
             val shorterUrl = cleanUrl(data._1.url)
@@ -370,9 +370,9 @@ class RedditLinkProvider(directory: Directory, conf: RedditConf, subreddits: Lis
               sid.setField("url", data._1.url)
             }
 
-            if (articleTitleAndText._1 != null) {
-              sid.setField("article_title", articleTitleAndText._1)
-            }
+            //if (articleTitleAndText._1 != null) {
+              //sid.setField("article_title", articleTitleAndText._1)
+            //}
 
             sid.setField("points", points)
             sid.setField("id", id)
@@ -403,6 +403,9 @@ class RedditLinkProvider(directory: Directory, conf: RedditConf, subreddits: Lis
           // TODO add this to word2vec
         } catch {
           case e: FileNotFoundException => {
+            println(e)
+          }
+          case e: Error => {
             println(e)
           }
         }

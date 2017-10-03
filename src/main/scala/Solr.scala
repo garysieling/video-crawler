@@ -1,15 +1,32 @@
 import java.io._
 
+import org.apache.solr.client.solrj.SolrQuery
 import org.apache.solr.client.solrj.impl.{HttpSolrClient, HttpSolrServer}
-import org.apache.solr.common.SolrInputDocument
+import org.apache.solr.common.{SolrDocument, SolrDocumentList, SolrInputDocument}
+import org.apache.solr.common.params.SolrParams
 import org.json.JSONObject
 
 import scala.collection.JavaConversions._
 import scala.collection.parallel.ForkJoinTaskSupport
 
 class Solr(core: String) {
-  val solrUrl = "http://localhost:8983/solr/" + core
+  //val solrUrl = "http://40.87.64.225:8983/solr/" + core
+  val solrUrl = "http://40.87.64.225:8983/solr/" + core
+
   val solr = new HttpSolrClient(solrUrl)
+
+  def list: List[SolrDocument] = {
+    val query = new SolrQuery()
+    query.setQuery( "*:*" )
+    query.setRows(Integer.MAX_VALUE)
+
+    val rsp = solr.query( query )
+
+    import scala.collection.JavaConversions._
+    val result = rsp.getResults().toList
+
+    result
+  }
 
   def first(document: JSONObject, strings: Seq[String]) = {
     strings.filter(
