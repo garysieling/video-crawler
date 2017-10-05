@@ -15,9 +15,9 @@ class Solr(core: String) {
 
   val solr = new HttpSolrClient(solrUrl)
 
-  def list: List[SolrDocument] = {
+  def list(qq: String): List[SolrDocument] = {
     val query = new SolrQuery()
-    query.setQuery( "*:*" )
+    query.setQuery( qq )
     query.setRows(Integer.MAX_VALUE)
 
     val rsp = solr.query( query )

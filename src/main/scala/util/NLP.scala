@@ -1,5 +1,6 @@
 package util
 
+import java.lang.Math._
 import java.text.BreakIterator
 import java.util.Locale
 
@@ -7,6 +8,7 @@ import com.telmomenezes.jfastemd._
 import org.deeplearning4j.models.word2vec.Word2Vec
 import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.factory.Nd4j
+import org.nd4j.linalg.api.ops.impl.accum.distances.EuclideanDistance;
 
 /**
   * Created by gary on 8/3/2017.
@@ -68,7 +70,9 @@ object NLP {
       end = iterator.next
     }
 
-    words
+    words.map(
+      _.toLowerCase
+    )
   }
 
   var queryCache1 = Map[String, List[FeatureND]]()
@@ -107,38 +111,188 @@ object NLP {
     }
   }
 
-  def getDistance(query: String, title: String, document: String, model: Word2Vec): Option[Double] = {
+  def normalizeList(vectors: List[(String, INDArray)]) = {
+    vectors.map(
+      (value: (String, INDArray)) => {
+        (value._1, normalize(value._2))
+      }
+    )
+  }
+
+
+
+  def normalize(vector: INDArray) = {
+    val vec2: INDArray = vector.mul(vector)
+    val total = vec2.sumNumber()
+
+    vector.div(sqrt(total.doubleValue()))
+  }
+
+  def centroid(vectors: List[(String, INDArray)]) = {
+    val vectorsOnly =
+      vectors.map(
+        (v: (String, INDArray)) => v._2
+      )
+
+    val length: Double = vectorsOnly.length
+    vectorsOnly.reduce(
+      (a: INDArray, b: INDArray) => a.add(b)
+    ).div(
+      length
+    )
+  }
+
+  def getDistance(query: String, words: List[String], model: Word2Vec): Double = {
     // TODO cache document
 
     //val queryWords =  //cache2(query, () => getWords(query))
     // doing nothing - rate is 10000
     // doing just this - 19.6
+  //  val wordVectorMatrix = model.getWordVectorMatrix("artificial")
+    //  val wordVector = model.getWordVector("intelligence")
 
-    // NEXT STEP: load lucene directly
-    val allWords = getWords(document)
 
-    val queryMatrix: List[Feature] =
-      cache1(
-        query,
-        () => getWords(query).map(
-          model.getWordVector(_)
+   // cosineSim(x[i], y[i])
+
+        // NEXT STEP: load lucene directly
+    val queryVectorsOut =
+       //cache1(
+       // query,
+        getWords(query).map(
+          (word) => (word, model.getWordVector(word))
         ).filter(
-          _ != null
+          _._2 != null
         ).map(
-          (w: Array[Double]) =>
-            new FeatureND(Nd4j.create(w))
+          (w: (String, Array[Double])) =>
+            (w._1, Nd4j.create(w._2))
         )
-      )
+          //)
 
-    val documentMatrix =
-      allWords.map(
-        model.getWordVector(_)
+    val weightLookupTable = model.lookupTable()
+
+      val queryVectorsIn =
+        getWords(query).map(
+          (word) => (word, model.getWordVectorMatrix(word))
+        ).filter(
+          _._2 != null
+        )
+
+        val documentVectorsOut =
+          words.map(
+            (word) => (word, model.getWordVector(word))
+          ).filter(
+            _._2 != null
+          ).map(
+          (w: (String, Array[Double])) =>
+            (w._1, Nd4j.create(w._2))
+        )
+
+    val documentVectorsIn =
+      words.map(
+        (word) => (word, model.getWordVectorMatrix(word))
       ).filter(
-        _ != null
+        _._2 != null
       )
 
-    if (documentMatrix.length > queryMatrix.size) {
-      val documentWeights = allWords.map(getWeight).toArray
+    // these appear to already be normalized
+    val queryNormIn = normalizeList(queryVectorsIn)
+    val queryNormOut = normalizeList(queryVectorsOut)
+
+    // fairly certain this is the "out" vector
+    val documentNormOut = normalizeList(documentVectorsOut)
+    val documentNormIn = normalizeList(documentVectorsIn)
+
+    val documentCenterOut = centroid(documentNormOut)
+    val documentCenterIn = centroid(documentNormIn)
+
+
+    val DESMinoutSCORE = queryNormIn.map(
+      (vec: (String, INDArray)) => vec._2
+    ).map(
+      (vec: INDArray) => {
+        vec.mul(documentCenterOut)
+      }
+    ).map(
+      (vec: INDArray) => vec.sumNumber()
+    ).map(
+      (a: Number) => a.doubleValue()
+    ).reduce(
+      (a: Double, b: Double) => a + b
+    ) / (1.0 * queryNormIn.length)
+
+
+    val DESMininSCORE = queryNormIn.map(
+      (vec: (String, INDArray)) => vec._2
+    ).map(
+      (vec: INDArray) => {
+        vec.mul(documentCenterIn)
+      }
+    ).map(
+      (vec: INDArray) => vec.sumNumber()
+    ).map(
+      (a: Number) => a.doubleValue()
+    ).reduce(
+      (a: Double, b: Double) => a + b
+    ) / (1.0 * queryNormIn.length)
+
+    DESMinoutSCORE
+
+    // TESTs
+    // I must not be getting the right "in" vectors, because the two measuers are the same
+
+    /*
+
+    DESM ( Q, D ) =
+       1 / | Q | *
+         sum(
+          qi in Q
+          qiT * D / || qi || || D ||
+         )
+
+    D = 1 / | D | * sum (
+      d in D
+      dj / || dj ||
+
+    )
+
+    Final Rank
+
+    MM(Q, D) = αDESM(Q, D) + (1 − α)BM25(Q, D)
+α ∈ R, 0 ≤ α ≤ 1
+(
+     */
+
+    //0
+
+ /*   val df = Map(
+      "intelligence" -> 110,
+      "machine" -> 316,
+      "python" -> 197,
+      "scala" -> 21,
+      "artificial" -> 60,
+      "learning" -> 575
+    )
+
+    0*/
+
+    // group words in doc based on which term they most closely match
+    /*  val distances =
+        documentMatrix.map(
+          (documentWord) =>
+            queryMatrix.map(
+              (queryWord) => (
+                documentWord._1,
+                queryWord._1,
+                queryWord._2.distance1(documentWord._2) / df(queryWord._1)
+              )
+            ).sortBy(_._3).head
+        )
+
+      val result = distances.map(_._3).reduce(_ + _) / distances.size
+
+      result*/
+    /*if (documentMatrix.length > queryMatrix.size) {
+      val documentWeights = words.map(getWeight).toArray
 
       // TODO
       val queryWeights = queryMatrix.map( _ => 1.0 ).toArray
@@ -170,7 +324,7 @@ object NLP {
 
     } else {
       None
-    }
+    }*/
 
     //println(title)
     //println(distance)

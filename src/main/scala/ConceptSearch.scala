@@ -97,45 +97,52 @@ object ConceptSearch {
 
     var toBeat = 1000000000.0
 
+    val solr = new Solr("articles")
+    val articles: List[(String, String)] = solr.list("article:*").map(
+      (doc) => (doc.get("reddit_title").toString, doc.get("article").toString)
+    )
+
     val model = w2v.model.getOrElse(???)
 
-    val loadedData =
+    /*val loadedData =
       fileList.take(10000).map(
         (file) => {
           val fileData = getFile(file)
           fileData
-        }).toList
+        }).toList*/
 
     val startTime = new Date
     println(startTime)
 
-    loadedData.map(
-      (fileData) => {
-        val distanceOpt = NLP.getDistance(
-          "artificial intelligence, machine learning, python",
-          fileData._1,
-          fileData._2,
-          model
-        )
-
-        distanceOpt match {
-          case Some(distance: Double) => {
-            if (distance < toBeat) {
-              val newData: (Double, String) = (distance, fileData._1)
-              top += newData
-              top = top.sortBy(_._1).take(10)
-
-              toBeat = top.last._1
-            }
-          }
-          case None => {
-            //println("Skipping " + fileData._1)
-          }
-        }
-      }
+    val articlesData = articles.map(
+      (document) =>
+        (document._1, NLP.getWords(document._1) ++ NLP.getWords(document._2.substring(0, Math.min(document._2.length, 1000))))
     )
 
-    print(top)
+    /*val df = Map(
+      "intelligence" -> 110,
+      "machine" -> 316,
+      "python" -> 197,
+      "scala" -> 21,
+      "artificial" -> 60
+    )*/
+
+    println(new Date)
+
+    articlesData.map(
+      (fileData) => {
+        //println("Testing: " + fileData)
+
+        (
+          fileData._1,
+          NLP.getDistance(
+            "artificial intelligence, machine learning, python",
+            fileData._2,
+            model
+          )
+        )
+      }
+    ).sortBy(_._2).map(println)
 
     val endTime = new Date
     println("")
