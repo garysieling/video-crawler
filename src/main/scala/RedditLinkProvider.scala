@@ -369,7 +369,7 @@ class RedditLinkProvider(directory: Directory, conf: RedditConf, subreddits: Lis
 
             val id = new String(shorterUrl)
 
-            sid.setField("article", cleanText)
+            sid.setField("article", NLP.replaceEntities(cleanText))
             sid.setField("cleanUrl", shorterUrl)
             sid.setField("subreddit", subreddit)
             sid.setField("comments", comments)
@@ -378,6 +378,7 @@ class RedditLinkProvider(directory: Directory, conf: RedditConf, subreddits: Lis
               sid.setField("domain", data._1.domain)
               sid.setField("removalReason", data._1.removalReason)
               sid.setField("reddit_title", data._1.title)
+              sid.setField("reddit_title_entities", NLP.replaceEntities(data._1.title))
               sid.setField("created", data._1.created)
               sid.setField("weekoftime", data._1.created.getTime / 1000 / 3600 / 24 / 7)
               sid.setField("dayoftime", data._1.created.getTime / 1000 / 3600 / 24)

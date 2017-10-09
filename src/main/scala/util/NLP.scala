@@ -8,7 +8,9 @@ import com.telmomenezes.jfastemd._
 import org.deeplearning4j.models.word2vec.Word2Vec
 import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.factory.Nd4j
-import org.nd4j.linalg.api.ops.impl.accum.distances.EuclideanDistance;
+import org.nd4j.linalg.api.ops.impl.accum.distances.EuclideanDistance
+
+import scala.util.matching.Regex;
 
 /**
   * Created by gary on 8/3/2017.
@@ -48,6 +50,48 @@ object NLP {
     }
 
     sentences
+  }
+
+  def replaceEntities(text: String): String = {
+    val entities = List(
+      List("functional_programming", "Functional programming"),
+      List("orm", "Object Relational Mapping"),
+      List("ar","augmented reality"),
+      List("vr","virtual reality"),
+      List("ml","machine learning"),
+      List("iot","internet of things"),
+      List("ai","artificial intelligence"),
+      List("computer_science", "computer science"),
+      List("recommender_systems", "recommender systems"),
+      List("recommendation_engines", "recommendation engines"),
+      List("distributed_systems", "distributed systems"),
+      List("autonomous_vehicles", "autonomous vehicles"),
+      List("graphic_design", "graphic design"),
+      List("distributed_systems", "distributed systems"),
+      List("nlp","natural language processing"),
+      List("deep_learning", "deep learning"),
+      List("data_science", "data science"),
+      List("reverse_engineering", "reverse engineering"),
+      List("operating_systems", "operating systems","os"),
+      List("nodejs", "node js", "node.js"),
+      List("crm", "customer relationship management"),
+      List("natural_language", "natural language")
+    )
+
+    entities.map(
+      (entityMapper) => {
+        val preferred = entityMapper.head
+        val rest = entityMapper.tail
+
+        rest.map(
+          (v: String) =>
+            (target: String) => new Regex("\\b" + v + "\\b", "i").replaceAllIn(target, preferred)
+        )
+      }
+    ).flatten.reduce(
+      (a, b) =>
+        (target: String) => a(b(target))
+    )(text)
   }
 
   def getWords(text: String): List[String] = {
