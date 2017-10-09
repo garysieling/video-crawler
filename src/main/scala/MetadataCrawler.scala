@@ -33,7 +33,7 @@ class MetadataCrawler(directory: Directory, crawler: String) extends Crawler[Map
   override lazy val dataPage =
     config.getString("dataPage")
 
-  override lazy val maxPage = {
+  override lazy val maxPage: Integer = {
     if (config.has("maxPage")) {
       config.getInt("maxPage")
     } else {

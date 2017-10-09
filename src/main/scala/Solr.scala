@@ -11,18 +11,20 @@ import scala.collection.parallel.ForkJoinTaskSupport
 
 class Solr(core: String) {
   //val solrUrl = "http://40.87.64.225:8983/solr/" + core
-  val solrUrl = "http://40.87.64.225:8983/solr/" + core
+  val solrUrl = "http://104.237.151.183:8983/solr/" + core
 
   val solr = new HttpSolrClient(solrUrl)
 
-  def list(qq: String): List[SolrDocument] = {
+  def list(qq: String, fl: List[String], rows: Integer): List[SolrDocument] = {
+    import scala.collection.JavaConversions._
+
     val query = new SolrQuery()
     query.setQuery( qq )
-    query.setRows(Integer.MAX_VALUE)
+    query.setFields(fl.toArray: _*)
+    query.setRows(rows)
 
     val rsp = solr.query( query )
 
-    import scala.collection.JavaConversions._
     val result = rsp.getResults().toList
 
     result

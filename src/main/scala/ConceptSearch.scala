@@ -67,16 +67,16 @@ object ConceptSearch {
     //   Fill in entity names from DBPedia
     //   Merge these to hadoop/spark for better RAM
 
-    val folderPath: String = "C:\\projects\\image-annotation\\data\\talks\\json\\1"
+    /*val folderPath: String = "C:\\projects\\image-annotation\\data\\talks\\json\\1"
 
     val folder: File = new File(folderPath)
     val fileList: Array[File] = folder.listFiles(new FilenameFilter() {
       def accept(dir: File, name: String): Boolean = {
         return name.endsWith(".json")
       }
-    })
+    })*/
 
-    val work = fileList
+    //val work = fileList
 
     val w2v = new Semantic("D:\\projects\\clones\\pathToSaveModel1.txt")
     w2v.init
@@ -97,9 +97,24 @@ object ConceptSearch {
 
     var toBeat = 1000000000.0
 
-    val solr = new Solr("articles")
-    val articles: List[(String, String)] = solr.list("article:*").map(
-      (doc) => (doc.get("reddit_title").toString, doc.get("article").toString)
+    val solr = new Solr("talks")
+    val documentsSolr: List[(String, String, Float)] =
+        solr.list(
+          """auto_transcript_txt_en:"machine learning" OR auto_transcript_txt_en:"python"""",
+          List("score", "title_s", "auto_transcript_txt_en"),
+          10
+        ).filter(
+          _ != null
+        ).filter(
+          doc =>
+            doc.get("title_s") != null &&
+            doc.get("auto_transcript_txt_en") != null
+        ).map(
+      (doc) => (
+        doc.get("title_s").toString,
+        doc.get("auto_transcript_txt_en").toString,
+        doc.get("score").asInstanceOf[Float]
+      )
     )
 
     val model = w2v.model.getOrElse(???)
@@ -114,39 +129,34 @@ object ConceptSearch {
     val startTime = new Date
     println(startTime)
 
-    val articlesData = articles.map(
+    val distance = NLP.getDocumentDistance(
+      "machine learning, python", model)
+
+    val alpha = 0.20
+
+    val documents = documentsSolr.map(
       (document) =>
-        (document._1, NLP.getWords(document._1) ++ NLP.getWords(document._2.substring(0, Math.min(document._2.length, 1000))))
-    )
-
-    /*val df = Map(
-      "intelligence" -> 110,
-      "machine" -> 316,
-      "python" -> 197,
-      "scala" -> 21,
-      "artificial" -> 60
-    )*/
-
-    println(new Date)
-
-    articlesData.map(
+        (document._1, NLP.getWords(document._1) ++ NLP.getWords(document._2.substring(0, Math.min(document._2.length, 1000))), document._3)
+    ).map(
       (fileData) => {
         //println("Testing: " + fileData)
 
+        val newScore = distance(
+          fileData._2
+        )
+
         (
           fileData._1,
-          NLP.getDistance(
-            "artificial intelligence, machine learning, python",
-            fileData._2,
-            model
-          )
+          alpha * newScore + (1 - alpha) * fileData._3,
+          newScore,
+          fileData._3
         )
       }
-    ).sortBy(_._2).map(println)
+    ).sortBy(_._2).take(100).map(println)
 
     val endTime = new Date
     println("")
-    println("Rate: " + fileList.size * 1.0 / (endTime.getTime - startTime.getTime))
+    //println("Rate: " + fileList.size * 1.0 / (endTime.getTime - startTime.getTime))
 
   }
 }
