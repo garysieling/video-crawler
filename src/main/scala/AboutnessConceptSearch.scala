@@ -1,10 +1,13 @@
+import org.joda.time.DateTime
 import org.json.JSONObject
 import org.nd4j.linalg.api.ndarray.INDArray
 import util.{NLP, Semantic}
 import org.nd4s.Implicits._
 import org.nd4j.linalg.factory.Nd4j
 import org.nd4j.linalg.ops.transforms.Transforms
+
 import scala.collection.JavaConverters._
+import scala.collection.parallel.ForkJoinTaskSupport
 
 object AboutnessConceptSearch {
   def first(document: JSONObject, strings: Seq[String]): Option[String] = {
@@ -67,21 +70,41 @@ object AboutnessConceptSearch {
       solr.list(
         query,
         List("score", "title_s", "auto_transcript_txt_en"),
-        10
+        100
       )
 
-    val documentsArray =
+    val coll =
       solrResults.map(
+        (document) =>
+          (
+            document.get("auto_transcript_txt_en").toString,
+            document.get("title_s").toString
+          )
+      ).par
+
+    coll.tasksupport = new ForkJoinTaskSupport(
+      new scala.concurrent.forkjoin.ForkJoinPool(16))
+
+    val documents =
+      coll.map(
         (document) => {
-          val text = document.get("auto_transcript_txt_en").toString
-          model.getWordVectorsMean(NLP.getWords(text))
+          println("starting doc " + new DateTime())
+
+          val mean = model.getWordVectorsMean(NLP.getWords(document._1))
+          println("finished doc" + new DateTime())
+
+          (document._2, mean)
         }
       ).map(
-        (vec) => Transforms.cosineSim(vec, queryMean)
-      )
+        (vec) => (vec._1, Transforms.cosineSim(vec._2, queryMean))
+      ).toList.sortBy(
+        (vec) => vec._2
+      ).reverse.map(
+        (vec) => vec._1 + ": " + vec._2
+      ).mkString("\n")
 
     //val documentMeans = Nd4j.create(documentsArray, Array(documentsArray.size, 1000))
-    println(documentsArray)
+    println(documents)
 
 
     //println(

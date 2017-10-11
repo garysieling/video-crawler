@@ -28,11 +28,13 @@ object DoesntMatch {
       terms.map(
         (term1) => {
           terms.map(
-            (term2) => (term1, term2, w2v.model.get.similarity(term1, term2))
+            (term2) => (term1, term2)
           )
         }
       ).flatten.filter(
         (tuple) => tuple._1 < tuple._2
+      ).map(
+        (tuple) => (tuple._1, tuple._2, w2v.model.get.similarity(tuple._1, tuple._2))
       ).map(
         (tuple) => tuple._1 + "<-->" + tuple._2 + ": " + tuple._3
       ).mkString("\n")
