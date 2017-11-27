@@ -14,6 +14,9 @@ libraryDependencies += "org.nd4j" % "nd4j-native-platform" % "0.8.0"
 libraryDependencies += "org.nd4j" % "nd4s_2.11" % "0.8.0"
 libraryDependencies += "org.deeplearning4j" % "deeplearning4j-core" % "0.8.0"
 libraryDependencies += "org.deeplearning4j" % "deeplearning4j-nlp" % "0.8.0"
+libraryDependencies += "gov.nih.imagej" % "imagej" % "1.47"
+libraryDependencies += "com.twelvemonkeys.imageio" % "imageio-jpeg" % "3.3.2"
+libraryDependencies += "com.typesafe.play" % "play-json_2.11" % "2.6.7"
 
 resolvers += "jCenter" at "https://jcenter.bintray.com"
 
