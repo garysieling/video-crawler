@@ -250,40 +250,44 @@ object NLP {
             ).sortBy(_._3).head
         )
 
-      val result = distances.map(_._3).reduce(_ + _) / distances.size
-
-      if (documentMatrix.length > queryMatrix.size) {
-        val documentWeights = words.map(getWeight).toArray
-
-        // TODO
-        val queryWeights = queryMatrix.map(_ => 1.0).toArray
-        //queryMatrix.map(getWeight(_.getWord)).toArray
-
-        import scala.collection.JavaConversions._
-
-        val s1 = new Signature()
-        s1.setNumberOfFeatures(queryMatrix.size)
-        s1.setFeatures(queryMatrix.map(_._2).toArray)
-        s1.setWeights(queryWeights)
-
-        val s2 = new Signature()
-        s2.setNumberOfFeatures(documentMatrix.size)
-        s2.setFeatures(
-          documentMatrix.map(
-            _._2
-          ).toArray)
-
-        s2.setWeights(documentWeights)
-
-        10 / (
-          1 + JFastEMD.distance(
-            s1,
-            s2,
-            0 // TODo
-          )
-        )
+      if (distances.length == 0) {
+        -1
       } else {
-        0
+        val result = distances.map(_._3).reduce(_ + _) / distances.size
+
+        if (documentMatrix.length > queryMatrix.size) {
+          val documentWeights = words.map(getWeight).toArray
+
+          // TODO
+          val queryWeights = queryMatrix.map(_ => 1.0).toArray
+          //queryMatrix.map(getWeight(_.getWord)).toArray
+
+          import scala.collection.JavaConversions._
+
+          val s1 = new Signature()
+          s1.setNumberOfFeatures(queryMatrix.size)
+          s1.setFeatures(queryMatrix.map(_._2).toArray)
+          s1.setWeights(queryWeights)
+
+          val s2 = new Signature()
+          s2.setNumberOfFeatures(documentMatrix.size)
+          s2.setFeatures(
+            documentMatrix.map(
+              _._2
+            ).toArray)
+
+          s2.setWeights(documentWeights)
+
+          10 / (
+            1 + JFastEMD.distance(
+              s1,
+              s2,
+              0 // TODo
+            )
+            )
+        } else {
+          0
+        }
       }
     }
 
