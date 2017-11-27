@@ -30,14 +30,14 @@ object SynConceptSearch {
 
     import scala.collection.JavaConversions._
     val query =
-      List("python", "machine learning").map(
+      List("writing").map(
         (term) =>
           List(
             "auto_transcript_txt_en:\"" + term + "\"^10",
             "title_s:" + term + "^10"
           )
       ).flatten.mkString(" OR ") + " " +
-      List("python", "machine", "learning").map(
+      List("writing").map(
         (term) => {
           val pTerms: java.util.List[String] = List[String](term).asJava
           val nTerms: java.util.List[String] = List[String]().asJava
@@ -47,10 +47,10 @@ object SynConceptSearch {
           "(" +
             near.map(
               (term2: String) => {
-                val distanceTranscript = Math.pow(0.5 + w2v.model.get.similarity(term, term2), 2)
-                val distanceTitle = Math.pow(0.5 + w2v.model.get.similarity(term, term2), 2)
+                val distanceTranscript = (Math.PI - Math.acos(w2v.model.get.similarity(term, term2))) + 1
+                val distanceTitle = (Math.PI - Math.acos(w2v.model.get.similarity(term, term2))) + 1
                 "auto_transcript_txt_en:" + term2 + "^" + truncate(distanceTitle) +
-                  " OR title_s:" + term2 + "^" + truncate(distanceTitle)
+                " OR title_s:" + term2 + "^" + truncate(distanceTitle)
               }
             ).mkString(" OR ") + ")"
         }
