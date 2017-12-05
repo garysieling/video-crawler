@@ -1,25 +1,19 @@
+package emails
+
 import java.io._
 import java.util.Date
 
 import org.apache.solr.client.solrj.SolrQuery
 import org.apache.solr.client.solrj.impl.HttpSolrClient
 import org.apache.solr.common.SolrDocument
-import org.joda.time.DateTime
 import org.json.JSONObject
 import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.ops.transforms.Transforms
 import util.{NLP, Semantic}
 
-import scala.collection.parallel.ForkJoinTaskSupport
-
-import org.joda.time.DateTime
-import org.json.JSONObject
-import org.nd4j.linalg.api.ndarray.INDArray
-import org.nd4j.linalg.ops.transforms.Transforms
-import util.{NLP, Semantic}
-
-import scala.collection.parallel.ForkJoinTaskSupport
 import scala.collection.JavaConverters._
+import scala.collection.parallel.ForkJoinTaskSupport
+
 object ConceptSearchEmails {
   def first(document: JSONObject, strings: Seq[String]): Option[String] = {
     strings.filter(
@@ -75,8 +69,35 @@ object ConceptSearchEmails {
 
   def main(args: Array[String]): Unit = {
 
+    val dataType = new ArticleDataType
     val query = args(0)
     val modelFile = args(1)
+
+    val w2v = new Semantic(modelFile)
+    w2v.init
+
+    val model = w2v.model.getOrElse(???)
+
+    var getWordVectorsMeanCache = Map[List[String], INDArray]()
+    def getWordVectorsMean(tokens: List[String]): INDArray = {
+
+      if (!getWordVectorsMeanCache.contains(tokens)) {
+        val output: INDArray = model.getWordVectorsMean(tokens.asJavaCollection)
+        getWordVectorsMeanCache = getWordVectorsMeanCache + (tokens -> output)
+      }
+
+      // TODO: database-ize
+      getWordVectorsMeanCache(tokens)
+    }
+
+    // TODO cluster by nearness? -> problems here:
+    //    distance metric is an angle
+    //    distance metric in N dimensions so be careful
+    //
+    query.split(",").map(
+      (term: String) =>
+        (term, getWordVectorsMean(term.split(" ").toList))
+    )
 
     // STEPS:
     //   stay running, take queries (server?)
@@ -89,20 +110,32 @@ object ConceptSearchEmails {
     //   re-sort by 'aboutness', top N
     //   re-sort by diversity
     //  get reddit updater to work against the same core as new stuff
-    def listDocuments(core: String, qq: String, fl: List[String], rows: Integer): List[SolrDocument] = {
+    def listDocuments(dt: DataType, qq: String, fl: List[String], rows: Integer, skip: List[String]): List[SolrDocument] = {
       import scala.collection.JavaConversions._
 
-      val solrUrl = "http://40.87.64.225:8983/solr/" + core
+      val solrUrl = "http://40.87.64.225:8983/solr/" + dt.core
 
       val solr = new HttpSolrClient(solrUrl)
 
       val query = new SolrQuery()
+
+      // todo remove negative terms
+
+      val userQuery = qq
       query.setQuery( qq )
       query.setFields(fl.toArray: _*)
       query.setRequestHandler("tvrh")
       query.setRows(rows)
+      skip.map(
+        (id) => {
+          query.addFilterQuery("-id:" + id)
+        }
+      )
 
-      query.addFilterQuery("article_text_s:*")
+      dt.filter match {
+        case Some(value: String) => query.addFilterQuery(value)
+        case None => {}
+      }
 
       val rsp = solr.query( query )
 
@@ -129,9 +162,11 @@ object ConceptSearchEmails {
     case class Article(title: String, url: String, article: String, score: Float)
 
     val rowsToPull = 100
+
+    // TODO videos
     val documentsSolr =
       listDocuments(
-          "articles2",
+          dataType,
           query.split(",").map(
             (token) => (
               "article_text_s:\"" + token + "\" OR " +
@@ -139,8 +174,8 @@ object ConceptSearchEmails {
             )
           ).toList.mkString(" OR "),
           List("id", "score", "title_s", "article_text_s"),
-          rowsToPull
-          // TODO: remove seen articles
+          rowsToPull,
+          List("1", "2", "3")
         ).filter(
           _ != null
         ).filter(
@@ -165,24 +200,8 @@ object ConceptSearchEmails {
         (grp) => grp._2(0)
       ).toList.par
 
-    val w2v = new Semantic(modelFile)
-    w2v.init
-
-    val model = w2v.model.getOrElse(???)
-
-    var getWordVectorsMeanCache = Map[java.util.Collection[String], INDArray]()
-    def getWordVectorsMean(tokens: java.util.Collection[String]): INDArray = {
-      if (!getWordVectorsMeanCache.contains(tokens)) {
-          getWordVectorsMeanCache = getWordVectorsMeanCache + (tokens -> model.getWordVectorsMean(tokens))
-      }
-
-      getWordVectorsMeanCache(tokens)
-    }
-
     val startTime = new Date
     println(startTime)
-
-    import scala.collection.JavaConversions._
 
     val queryWords = NLP.getWords(args(0))
 
