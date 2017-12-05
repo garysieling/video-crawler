@@ -110,7 +110,7 @@ object ConceptSearchEmails {
     //   re-sort by 'aboutness', top N
     //   re-sort by diversity
     //  get reddit updater to work against the same core as new stuff
-    def listDocuments(dt: DataType, qq: String, fl: List[String], rows: Integer, skip: List[String]): List[SolrDocument] = {
+    def listDocuments(dt: DataType, qq: String, rows: Integer, skip: List[String]): List[SolrDocument] = {
       import scala.collection.JavaConversions._
 
       val solrUrl = "http://40.87.64.225:8983/solr/" + dt.core
@@ -123,7 +123,7 @@ object ConceptSearchEmails {
 
       val userQuery = qq
       query.setQuery( qq )
-      query.setFields(fl.toArray: _*)
+      query.setFields(dt.fieldsToRetrieve.toArray: _*)
       query.setRequestHandler("tvrh")
       query.setRows(rows)
       skip.map(
@@ -169,11 +169,12 @@ object ConceptSearchEmails {
           dataType,
           query.split(",").map(
             (token) => (
-              "article_text_s:\"" + token + "\" OR " +
-              "title_s:\"" + token + "\"^2 "
+              // TODO: ANDs vs ORs
+              dataType.fieldsToQuery.map(
+                (f) => f._1 + "\"" + token + "\"^" + f._2
+              )
             )
           ).toList.mkString(" OR "),
-          List("id", "score", "title_s", "article_text_s"),
           rowsToPull,
           List("1", "2", "3")
         ).filter(

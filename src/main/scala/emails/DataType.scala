@@ -6,4 +6,6 @@ package emails
 abstract class DataType {
   val core: String
   val filter: Option[String]
+  val fieldsToRetrieve: List[String]
+  val fieldsToQuery: List[(String, Double)]
 }
