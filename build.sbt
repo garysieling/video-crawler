@@ -18,12 +18,22 @@ libraryDependencies += "gov.nih.imagej" % "imagej" % "1.47"
 libraryDependencies += "com.twelvemonkeys.imageio" % "imageio-jpeg" % "3.3.2"
 libraryDependencies += "com.typesafe.play" % "play-json_2.11" % "2.6.7"
 
+libraryDependencies += "com.amazonaws" % "aws-java-sdk" % "1.11.235"
+libraryDependencies += "com.amazonaws" % "aws-java-sdk-core" % "1.11.235"
+libraryDependencies += "com.amazonaws" % "aws-java-sdk-emr" % "1.11.235"
+libraryDependencies += "com.amazonaws" % "aws-java-sdk-s3" % "1.11.235"
+
+libraryDependencies += "com.beust" % "jcommander" % "1.72"
+
+libraryDependencies += "org.apache.spark" % "spark-core_2.11" % "2.0.1"
+
 resolvers += "jCenter" at "https://jcenter.bintray.com"
 
 libraryDependencies += "net.dean.jraw" % "JRAW" % "0.9.0"
 libraryDependencies += "org.rogach" %% "scallop" % "3.0.3"
 
-scalaVersion := "2.11.2"
+
+scalaVersion := "2.11.11"
 
 import com.github.retronym.SbtOneJar._
 
