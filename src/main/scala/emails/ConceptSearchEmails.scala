@@ -123,7 +123,7 @@ object ConceptSearchEmails {
 
       val userQuery = qq
       query.setQuery( qq )
-      query.setFields(dt.fieldsToRetrieve.toArray: _*)
+      query.setFields((dt.fieldsToRetrieve ++ dt.textFields).toArray: _*)
       query.setRequestHandler("tvrh")
       query.setRows(rows)
       skip.map(
@@ -159,7 +159,7 @@ object ConceptSearchEmails {
     var top = scala.collection.mutable.MutableList[(Double, String)]()
     var toBeat = 1000000000.0
 
-    case class Article(title: String, url: String, article: String, score: Float)
+    case class Link(title: String, url: String, text: String, score: Float)
 
     val rowsToPull = 100
 
@@ -180,20 +180,15 @@ object ConceptSearchEmails {
         ).filter(
           _ != null
         ).filter(
-          doc =>
-            doc.get("title_s") != null &&
-            doc.get("article_text_s") != null &&
-            doc.get("article_text_s") != "" &&
-            doc.get("id") != null &&
-            doc.get("id").toString.startsWith("http")
+          dataType.postFilter
         ).map(
           (doc) =>
-            Article(
-              doc.get("title_s").toString,
-              // TODO remove query string
-              // TODO add UTM tags
-              normalizeUrl(doc.get("id").toString),
-              doc.get("article_text_s").toString,
+            Link(
+              doc.get(dataType.titleField).toString,
+              normalizeUrl(doc.get(dataType.idField).toString),
+              dataType.textFields.map(
+                (field) => doc.get(field)
+              ).mkString("\n"),
               doc.get("score").asInstanceOf[Float]
             )
       ).groupBy(_.url).map(
@@ -215,9 +210,9 @@ object ConceptSearchEmails {
 
     val mostAbout =
       documentsSolr.map(
-        (document: Article) =>
+        (document: Link) =>
           (
-            NLP.getWords(document.article) ++ NLP.getWords(document.title),
+            NLP.getWords(document.text),
             document
           )
       ).map(
@@ -241,9 +236,9 @@ object ConceptSearchEmails {
     //  new scala.concurrent.forkjoin.ForkJoinPool(threads))
 
     def pickNext(
-                  topDocuments: List[(Article, List[String], INDArray)],
-                  remaining: List[(Article, List[String], INDArray)]
-                ): (Double, (Article, List[String], INDArray)) = {
+                  topDocuments: List[(Link, List[String], INDArray)],
+                  remaining: List[(Link, List[String], INDArray)]
+                ): (Double, (Link, List[String], INDArray)) = {
       val next =
         remaining.par.map(
           (tuple) => {
@@ -267,9 +262,9 @@ object ConceptSearchEmails {
 
     def recurse(
                  idx: Integer,
-                 topDocuments: List[(Double, (Article, List[String], INDArray))],
-                 remaining: List[(Article, List[String], INDArray)]
-               ): List[(Double, (Article, List[String], INDArray))] = {
+                 topDocuments: List[(Double, (Link, List[String], INDArray))],
+                 remaining: List[(Link, List[String], INDArray)]
+               ): List[(Double, (Link, List[String], INDArray))] = {
       val nextDocument = pickNext(topDocuments.map((vec) => vec._2), remaining)
 
       if (idx == 1) {
