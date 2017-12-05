@@ -29,44 +29,6 @@ object ConceptSearchEmails {
     }
   }
 
-  def getFile(file: File): (String, String) = {
-    // post to Solrs
-    //println(file)
-    val br: BufferedReader = new BufferedReader(new FileReader(file))
-    val sb: StringBuilder = new StringBuilder
-    var line: String = br.readLine
-    while (line != null) {
-      {
-        sb.append(line)
-        sb.append(System.lineSeparator)
-        line = br.readLine
-      }
-    }
-    val everything: String = sb.toString
-    val obj: JSONObject = new JSONObject(everything)
-
-    /*val data1: List[String] =
-      first(obj, Seq("transcript_txt_en", "transcript_s", "auto_transcript_txt_en", "auto_transcript_s", "auto_transcript_txt_en")) match {
-        case Some(x: String) => List(x)
-        case None => List()
-      }*/
-
-    val data2: List[String] =
-      first(obj, Seq("description_txt_en", "description_s")) match {
-        case Some(x: String) => List(x)
-        case None => List()
-      }
-
-    val title: List[String] =
-      first(obj, Seq("title_s")) match {
-        case Some(x: String) => List(x)
-        case None => List("No Title")
-      }
-
-    val results: List[String] = /*data1 ++ */ data2 ++ title
-    (title.head, results.mkString(" "))
-  }
-
   def main(args: Array[String]): Unit = {
 
     val dataType = new ArticleDataType
