@@ -31,7 +31,7 @@ object ConceptSearchEmails {
 
   def main(args: Array[String]): Unit = {
 
-    val dataType = new ArticleDataType
+    val dataType = new VideoDataType
     val query = args(0)
     val modelFile = args(1)
 
@@ -147,7 +147,7 @@ object ConceptSearchEmails {
           (doc) =>
             Link(
               doc.get(dataType.titleField).toString,
-              normalizeUrl(doc.get(dataType.idField).toString),
+              normalizeUrl(dataType.urlField(doc)),
               dataType.textFields.map(
                 (field) => doc.get(field)
               ).mkString("\n"),

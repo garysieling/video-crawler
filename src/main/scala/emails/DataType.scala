@@ -12,6 +12,7 @@ abstract class DataType {
   val fieldsToQuery: List[(String, Double)]
   val postFilter: (SolrDocument) => Boolean
   val textFields: List[String]
-  val titleField = "title_s"
-  val idField = "id"
+  val urlField: (SolrDocument) => String
+  val idField: String
+  val titleField: String
 }

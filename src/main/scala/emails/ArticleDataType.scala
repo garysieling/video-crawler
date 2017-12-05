@@ -11,6 +11,9 @@ class ArticleDataType extends  DataType {
   val fieldsToRetrieve = List("id", "score")
   val textFields = List("title_s", "article_text_s")
   val fieldsToQuery = List(("title_s", 2.0), ("article_text_s", 1.0))
+  val titleField = "title_s"
+  val idField = "id"
+  val urlField = (doc: SolrDocument) => doc.get("id").toString
 
   // TODO make sure these URLs are still up?
   val postFilter = (doc: SolrDocument) =>
