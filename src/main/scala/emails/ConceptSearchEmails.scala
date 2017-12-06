@@ -29,29 +29,67 @@ object ConceptSearchEmails {
     }
   }
 
-  def main(args: Array[String]): Unit = {
-
-    val dataType = new VideoDataType
-    val query = args(0)
-    val modelFile = args(1)
-
-    val w2v = new Semantic(modelFile)
-    w2v.init
-
-    val model = w2v.model.getOrElse(???)
-
-    var getWordVectorsMeanCache = Map[List[String], INDArray]()
-    def getWordVectorsMean(tokens: List[String]): INDArray = {
-
-      if (!getWordVectorsMeanCache.contains(tokens)) {
-        val output: INDArray = model.getWordVectorsMean(tokens.asJavaCollection)
-        getWordVectorsMeanCache = getWordVectorsMeanCache + (tokens -> output)
+  def normalizeUrl(originalUrl: String): String = {
+    val result = originalUrl.split("[?]")(0)
+    val url =
+      if (result.endsWith("/")) {
+        result.substring(0, result.length - 1)
+      } else {
+        result
       }
 
-      // TODO: database-ize
-      getWordVectorsMeanCache(tokens)
+    url + "?utm_source=findlectures"
+  }
+
+  val modelFile = "D:\\projects\\clones\\pathToSaveModel10_10_1000_5_1510799977189.txt"
+  val w2v = new Semantic(modelFile)
+  w2v.init
+
+  // todo can this happen while other stuff is going on?
+  val model = w2v.model.getOrElse(???)
+
+  var getWordVectorsMeanCache = Map[List[String], INDArray]()
+  def getWordVectorsMean(tokens: List[String]): INDArray = {
+    val key =
+      tokens.filter(
+        model.getWordVector(_) != null
+      )
+
+    if (!getWordVectorsMeanCache.contains(key)) {
+      val output: INDArray = model.getWordVectorsMean(key.asJavaCollection)
+      getWordVectorsMeanCache = getWordVectorsMeanCache + (key -> output)
     }
 
+    // TODO: database-ize
+    getWordVectorsMeanCache(key)
+  }
+
+  def main(args: Array[String]): Unit = {
+    val query = args(0)
+    val dataType = new VideoDataType
+
+    // TODO port unit tests?
+    // TODO get data from Google spreadsheet
+    // TODO how long does this take if you do 200 emails instead of one
+    // TODO templates for Aweber emails
+
+    val textTemplate = scala.io.Source.fromInputStream(getClass.getResourceAsStream("/alerts.txt")).mkString
+    val htmlTemplate = scala.io.Source.fromInputStream(getClass.getResourceAsStream("/alerts.html")).mkString
+
+    println(textTemplate)
+    println(htmlTemplate)
+
+    println(new Date)
+    val links1 = generate(query, new VideoDataType)
+    println(new Date)
+
+    println(new Date)
+    val links2 = generate(query, new ArticleDataType)
+    println(new Date)
+
+  }
+
+  def generate(query: String, dataType: DataType) {
     // TODO cluster by nearness? -> problems here:
     //    distance metric is an angle
     //    distance metric in N dimensions so be careful
@@ -60,6 +98,8 @@ object ConceptSearchEmails {
       (term: String) =>
         (term, getWordVectorsMean(term.split(" ").toList))
     )
+
+    val queryWords = NLP.getWords(query)
 
     // STEPS:
     //   stay running, take queries (server?)
@@ -106,26 +146,10 @@ object ConceptSearchEmails {
       result
     }
 
-    def normalizeUrl(originalUrl: String): String = {
-      val result = originalUrl.split("[?]")(0)
-      val url =
-        if (result.endsWith("/")) {
-          result.substring(0, result.length - 1)
-        } else {
-          result
-        }
-
-      url + "?utm_source=findlectures"
-    }
-
-    var top = scala.collection.mutable.MutableList[(Double, String)]()
-    var toBeat = 1000000000.0
-
     case class Link(title: String, url: String, text: String, score: Float)
 
     val rowsToPull = 100
 
-    // TODO videos
     val documentsSolr =
       listDocuments(
           dataType,
@@ -161,8 +185,6 @@ object ConceptSearchEmails {
     val startTime = new Date
     println(startTime)
 
-    val queryWords = NLP.getWords(args(0))
-
     // TODO : caching - in this case each query would potentially duplicate
     val queryMean = getWordVectorsMean(queryWords)
 
@@ -179,11 +201,7 @@ object ConceptSearchEmails {
           )
       ).map(
         (document) => {
-
-          //println("starting doc " + new DateTime())
-
           val mean = getWordVectorsMean(document._1)
-          //println("finished doc" + new DateTime())
 
           (document._1, document._2, mean)
         }
@@ -263,11 +281,6 @@ object ConceptSearchEmails {
       10
     ).map(
       (doc) => (doc._1.title, doc._1.url)
-    ).map(println)
-
-    val endTime = new Date
-    println(endTime)
-    //println("Rate: " + fileList.size * 1.0 / (endTime.getTime - startTime.getTime))
-
+    )
   }
 }

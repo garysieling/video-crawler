@@ -1,0 +1,32 @@
+Here are this weeks recommendations!
+
+Videos
+{videos}
+
+Articles
+{articles}
+
+Peace,
+
+Gary
+
+
+
+
+
+What did you think of this email?
+
+
+
+Hated it
+
+https://www.findlectures.com/form?type=dislike&utm_campaign={alertId}&email={email}&emailId={emailId}&utm_source=findlectures-alerts&utm_term=dislike-personalized
+
+Loved it
+
+https://www.findlectures.com/form?type=like&utm_campaign={alertId}&email={email}&emailId={emailId}&utm_source=findlectures-alerts&utm_term=like-personalized
+Done  Cancel
+
+Want to unsubscribe? Click here:
+
+{unsubscribeUrl}
