@@ -1,8 +1,7 @@
 package emails
 
-import java.nio.file.{Paths, Files}
+import java.nio.file.{Files, Paths}
 import java.nio.charset.StandardCharsets
-
 import java.io._
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Paths}
@@ -17,27 +16,13 @@ import org.nd4j.linalg.ops.transforms.Transforms
 import util.{NLP, Semantic}
 import java.util
 
+import org.nd4j.linalg.cpu.nativecpu.NDArray
+
 import scala.collection.JavaConverters._
 import scala.collection.parallel.ForkJoinTaskSupport
 //import scala.util.parsing.json.JSONArray
 
-case class EmailAlertContext(
-                            email: String,
-                            like: List[String],
-                            dislike: List[String],
-                            identifier: String,
-                            unsubscribed: Boolean,
-                            lastSent: String,
-                            lastEligible: String,
-                            failure: Boolean,
-                            index: Integer
-                            )
-case class EmailRequest(
-                       sent: String,
-                       context: EmailAlertContext
-                       )
-
-case class Link(title: String, url: String, text: String, score: Float)
+case class Link(title: String, url: String, text: String, id: String, score: Float)
 
 object ConceptSearchEmails {
   def first(document: JSONObject, strings: Seq[String]): Option[String] = {
@@ -120,7 +105,7 @@ object ConceptSearchEmails {
 
     val data = new JSONArray(request)
 
-    val output =
+    val parallel =
       data.toList.asScala.flatMap(
         (e: AnyRef) => {
           e match {
@@ -134,15 +119,16 @@ object ConceptSearchEmails {
                   val email = context.get("email")
                   val like = list(context.get("like"))
                   val dislike = list(context.get("dislike"))
+                  val previouslySent = list(context.get("sent"))
 
                   if (like.length > 0) {
                     println(new Date)
-                    val links1 = generate(like, dislike, new VideoDataType)
+                    val links1 = generate(like, dislike, previouslySent, new VideoDataType)
                     links1.map(println)
                     println(new Date)
 
                     println(new Date)
-                    val links2 = generate(like, dislike, new ArticleDataType)
+                    val links2 = generate(like, dislike, previouslySent, new ArticleDataType)
                     links2.map(println)
                     println(new Date)
 
@@ -157,7 +143,13 @@ object ConceptSearchEmails {
             case _ => None
           }
         }
-      ).toList
+      ).par
+
+    val threads = 16
+    parallel.tasksupport = new ForkJoinTaskSupport(
+      new scala.concurrent.forkjoin.ForkJoinPool(threads))
+
+    val output = parallel.toList
 
     val json = scala.util.parsing.json.JSONArray(output).toString()
     Files.write(Paths.get(args(1)), json.getBytes(StandardCharsets.UTF_8))
@@ -166,6 +158,7 @@ object ConceptSearchEmails {
     //println(htmlTemplate)
   }
 
+  // TODO I think there might be a better way to do this, I doubt this will be good on a GPU
   def safeCosine(
                   a: Option[INDArray],
                   b: Option[INDArray]): Double = {
@@ -212,7 +205,13 @@ object ConceptSearchEmails {
     }
   }
 
-  def generate(queryWords: List[String], dislike: List[String], dataType: DataType): List[(String, String)] = {
+  val zero1000 = new NDArray(Array.tabulate[Int](1000)( (a) => 0))
+
+  def generate(
+                queryWords: List[String],
+                dislike: List[String],
+                previouslySent: List[String],
+                dataType: DataType): List[(String, String, String)] = {
     // TODO cluster by nearness? -> problems here:
     //    distance metric is an angle
     //    distance metric in N dimensions so be careful
@@ -239,7 +238,6 @@ object ConceptSearchEmails {
       import scala.collection.JavaConversions._
 
       val solrUrl = "http://40.87.64.225:8983/solr/" + dt.core
-
       val solr = new HttpSolrClient(solrUrl)
 
       val query = new SolrQuery()
@@ -283,7 +281,7 @@ object ConceptSearchEmails {
             )
           ).toList.mkString(" OR "),
           rowsToPull,
-          List("1", "2", "3")
+          previouslySent
         ).filter(
           _ != null
         ).filter(
@@ -296,22 +294,19 @@ object ConceptSearchEmails {
               dataType.textFields.map(
                 (field) => doc.get(field)
               ).mkString("\n"),
+              doc.get("id").toString,
               doc.get("score").asInstanceOf[Float]
             )
       ).groupBy(_.url).map(
         // TODO: get shortest title
         (grp) => grp._2(0)
-      ).toList.par
+      ).toList
 
     val startTime = new Date
     println(startTime)
 
     // TODO : caching - in this case each query would potentially duplicate
     val queryMean = getWordVectorsMean(queryWords)
-
-    val threads = 16
-    documentsSolr.tasksupport = new ForkJoinTaskSupport(
-      new scala.concurrent.forkjoin.ForkJoinPool(threads))
 
     val mostAbout =
       documentsSolr.map(
@@ -345,7 +340,7 @@ object ConceptSearchEmails {
                   remaining: List[(Link, List[String], Option[INDArray])]
                 ): (Double, (Link, List[String], Option[INDArray])) = {
       val next =
-        remaining.par.map(
+        remaining.map(
           (tuple) => {
             val chosenMean =
               safeDiv(
@@ -407,7 +402,7 @@ object ConceptSearchEmails {
     ).take(
       10
     ).map(
-      (doc) => (doc._1.title, doc._1.url)
+      (doc) => (doc._1.title, doc._1.url, doc._1.id)
     )
   }
 }
