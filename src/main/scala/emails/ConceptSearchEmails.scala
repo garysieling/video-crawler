@@ -1,18 +1,43 @@
 package emails
 
+import java.nio.file.{Paths, Files}
+import java.nio.charset.StandardCharsets
+
 import java.io._
+import java.nio.charset.StandardCharsets
+import java.nio.file.{Files, Paths}
 import java.util.Date
 
 import org.apache.solr.client.solrj.SolrQuery
 import org.apache.solr.client.solrj.impl.HttpSolrClient
 import org.apache.solr.common.SolrDocument
-import org.json.JSONObject
+import org.json.{JSONArray, JSONObject}
 import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.ops.transforms.Transforms
 import util.{NLP, Semantic}
+import java.util
 
 import scala.collection.JavaConverters._
 import scala.collection.parallel.ForkJoinTaskSupport
+//import scala.util.parsing.json.JSONArray
+
+case class EmailAlertContext(
+                            email: String,
+                            like: List[String],
+                            dislike: List[String],
+                            identifier: String,
+                            unsubscribed: Boolean,
+                            lastSent: String,
+                            lastEligible: String,
+                            failure: Boolean,
+                            index: Integer
+                            )
+case class EmailRequest(
+                       sent: String,
+                       context: EmailAlertContext
+                       )
+
+case class Link(title: String, url: String, text: String, score: Float)
 
 object ConceptSearchEmails {
   def first(document: JSONObject, strings: Seq[String]): Option[String] = {
@@ -49,57 +74,155 @@ object ConceptSearchEmails {
   val model = w2v.model.getOrElse(???)
 
   var getWordVectorsMeanCache = Map[List[String], INDArray]()
-  def getWordVectorsMean(tokens: List[String]): INDArray = {
+  def getWordVectorsMean(tokens: List[String]): Option[INDArray] = {
     val key =
       tokens.filter(
         model.getWordVector(_) != null
       )
 
-    if (!getWordVectorsMeanCache.contains(key)) {
-      val output: INDArray = model.getWordVectorsMean(key.asJavaCollection)
-      getWordVectorsMeanCache = getWordVectorsMeanCache + (key -> output)
-    }
+    if (key.length == 0) {
+      None
+    } else {
+      // TODO: database-ize
+      if (!getWordVectorsMeanCache.contains(key)) {
+        val output: INDArray = model.getWordVectorsMean(key.asJavaCollection)
+        getWordVectorsMeanCache = getWordVectorsMeanCache + (key -> output)
 
-    // TODO: database-ize
-    getWordVectorsMeanCache(key)
+        Some(output)
+      } else {
+        Some(getWordVectorsMeanCache(key))
+      }
+    }
   }
 
   def main(args: Array[String]): Unit = {
-    val query = args(0)
     val dataType = new VideoDataType
 
     // TODO port unit tests?
     // TODO get data from Google spreadsheet
     // TODO how long does this take if you do 200 emails instead of one
     // TODO templates for Aweber emails
+    // TODO just take input as JSon and output as json
+    // And write some assertins on the input and output
 
-    val textTemplate = scala.io.Source.fromInputStream(getClass.getResourceAsStream("/alerts.txt")).mkString
-    val htmlTemplate = scala.io.Source.fromInputStream(getClass.getResourceAsStream("/alerts.html")).mkString
+    //val textTemplate = scala.io.Source.fromInputStream(getClass.getResourceAsStream("/alerts.txt")).mkString
+    //val htmlTemplate = scala.io.Source.fromInputStream(getClass.getResourceAsStream("/alerts.html")).mkString
+    val request = scala.io.Source.fromFile(args(0)).mkString
 
-    println(textTemplate)
-    println(htmlTemplate)
+    def list(v: Object): List[String] = {
+      v match {
+        case (vv: util.List[Object]) => {
+          vv.asScala.map(_.toString).toList
+        }
+        case _ => ???
+      }
+    }
 
-    println(new Date)
-    val links1 = generate(query, new VideoDataType)
-    println(new Date)
+    val data = new JSONArray(request)
 
-    println(new Date)
-    val links2 = generate(query, new ArticleDataType)
-    println(new Date)
+    val output =
+      data.toList.asScala.flatMap(
+        (e: AnyRef) => {
+          e match {
+            case (entry: util.HashMap[String, Object]) => {
+              val c = entry.get("context")
 
+              c match {
+                case (context: util.HashMap[String, Object]) => {
+
+                  val id = context.get("id")
+                  val email = context.get("email")
+                  val like = list(context.get("like"))
+                  val dislike = list(context.get("dislike"))
+
+                  if (like.length > 0) {
+                    println(new Date)
+                    val links1 = generate(like, dislike, new VideoDataType)
+                    links1.map(println)
+                    println(new Date)
+
+                    println(new Date)
+                    val links2 = generate(like, dislike, new ArticleDataType)
+                    links2.map(println)
+                    println(new Date)
+
+                    Some(email, id, links1, links2)
+                  } else {
+                    None
+                  }
+                }
+                case _ => None
+              }
+            }
+            case _ => None
+          }
+        }
+      ).toList
+
+    val json = scala.util.parsing.json.JSONArray(output).toString()
+    Files.write(Paths.get(args(1)), json.getBytes(StandardCharsets.UTF_8))
+
+    //println(textTemplate)
+    //println(htmlTemplate)
   }
 
-  def generate(query: String, dataType: DataType) {
+  def safeCosine(
+                  a: Option[INDArray],
+                  b: Option[INDArray]): Double = {
+    a match {
+      case Some(aa: INDArray) => {
+        b match {
+          case Some(bb: INDArray) =>
+            Transforms.cosineSim(aa, bb)
+          case None => 0
+        }
+      }
+      case None => 0
+    }
+  }
+
+  def safeAdd(
+                  a: Option[INDArray],
+                  b: Option[INDArray]): Option[INDArray] = {
+    a match {
+      case Some(aa: INDArray) => {
+        b match {
+          case Some(bb: INDArray) =>
+            Some(aa.add(bb))
+          case _ => Some(aa)
+        }
+      }
+      case None => {
+        b match {
+          case Some(bb: INDArray) => {
+            Some(bb)
+          }
+          case None => None
+        }
+      }
+    }
+  }
+
+  def safeDiv(a: Option[INDArray], b: Double): Option[INDArray] = {
+    a match {
+      case Some(aa: INDArray) => {
+        Some(aa.div(b))
+      }
+      case None => None
+    }
+  }
+
+  def generate(queryWords: List[String], dislike: List[String], dataType: DataType): List[(String, String)] = {
     // TODO cluster by nearness? -> problems here:
     //    distance metric is an angle
     //    distance metric in N dimensions so be careful
     //
-    query.split(",").map(
+    /*list.split(",").map(
       (term: String) =>
         (term, getWordVectorsMean(term.split(" ").toList))
-    )
+    )*/
 
-    val queryWords = NLP.getWords(query)
+    //val queryWords = NLP.getWords(query)
 
     // STEPS:
     //   stay running, take queries (server?)
@@ -146,14 +269,12 @@ object ConceptSearchEmails {
       result
     }
 
-    case class Link(title: String, url: String, text: String, score: Float)
-
     val rowsToPull = 100
 
     val documentsSolr =
       listDocuments(
           dataType,
-          query.split(",").map(
+          queryWords.map(
             (token) => (
               // TODO: ANDs vs ORs
               dataType.fieldsToQuery.map(
@@ -206,7 +327,11 @@ object ConceptSearchEmails {
           (document._1, document._2, mean)
         }
       ).map(
-        (vec) => (vec._2, vec._1, Transforms.cosineSim(vec._3, queryMean))
+        (vec) => (
+          vec._2,
+          vec._1,
+          safeCosine(queryMean, vec._3)
+        )
       ).toList // removes par
         .sortBy(
           (vec) => vec._3
@@ -216,24 +341,26 @@ object ConceptSearchEmails {
     //  new scala.concurrent.forkjoin.ForkJoinPool(threads))
 
     def pickNext(
-                  topDocuments: List[(Link, List[String], INDArray)],
-                  remaining: List[(Link, List[String], INDArray)]
-                ): (Double, (Link, List[String], INDArray)) = {
+                  topDocuments: List[(Link, List[String], Option[INDArray])],
+                  remaining: List[(Link, List[String], Option[INDArray])]
+                ): (Double, (Link, List[String], Option[INDArray])) = {
       val next =
         remaining.par.map(
           (tuple) => {
             val chosenMean =
-              topDocuments.map(
-                (doc) => doc._3
-              ).reduce(
-                (a, b) => a.add(b)
-              ).div(topDocuments.length)
+              safeDiv(
+                topDocuments.map(
+                  (doc) => doc._3
+                ).reduce(
+                  (a, b) => safeAdd(a, b)
+                ),
+                topDocuments.length)
 
             // compare this document to the stuff we already chose
             // this technique will bring back things the most unlike the rest of the collection
 
             // could also compute this score and skip things that are two close
-            (Transforms.cosineSim(chosenMean, tuple._3), tuple)
+            (safeCosine(chosenMean, tuple._3), tuple)
           }
         ).toList.sortBy(_._1)
 
@@ -242,9 +369,9 @@ object ConceptSearchEmails {
 
     def recurse(
                  idx: Integer,
-                 topDocuments: List[(Double, (Link, List[String], INDArray))],
-                 remaining: List[(Link, List[String], INDArray)]
-               ): List[(Double, (Link, List[String], INDArray))] = {
+                 topDocuments: List[(Double, (Link, List[String], Option[INDArray]))],
+                 remaining: List[(Link, List[String], Option[INDArray])]
+               ): List[(Double, (Link, List[String], Option[INDArray]))] = {
       val nextDocument = pickNext(topDocuments.map((vec) => vec._2), remaining)
 
       if (idx == 1) {
