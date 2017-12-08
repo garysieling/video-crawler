@@ -129,7 +129,7 @@ class Concepts {
     }
   }
 
-  val zero1000 = new NDArray(Array.tabulate[Int](1000)( (a) => 0))
+  val zero1000 = new NDArray(Array.tabulate[Float](1000)( (a) => 0))
 
   def generate(
                 queryWords: List[String],

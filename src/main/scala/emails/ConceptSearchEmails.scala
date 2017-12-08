@@ -40,9 +40,17 @@ object ConceptSearchEmails {
     def list(v: Object): List[String] = {
       v match {
         case (vv: util.List[Object]) => {
-          vv.asScala.map(_.toString).toList
+          val result = vv.asScala.map(_.toString).toList
+          result
         }
-        case _ => ???
+        case null => {
+          List()
+        }
+        case _ => {
+          println(v)
+
+          ???
+        }
       }
     }
 
