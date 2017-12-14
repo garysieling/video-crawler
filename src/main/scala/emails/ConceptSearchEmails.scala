@@ -32,6 +32,9 @@ object ConceptSearchEmails {
     // TODO templates for Aweber emails
     // TODO just take input as JSon and output as json
     // And write some assertins on the input and output
+    // TODO stuff doc average in solr
+    // TODO try reduction with T-SNE to make searching useful (e.g. pick me one per facet, which might be fast in solr)
+    //
 
     //val textTemplate = scala.io.Source.fromInputStream(getClass.getResourceAsStream("/alerts.txt")).mkString
     //val htmlTemplate = scala.io.Source.fromInputStream(getClass.getResourceAsStream("/alerts.html")).mkString
