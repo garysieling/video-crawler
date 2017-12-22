@@ -16,8 +16,8 @@ import org.nd4j.linalg.ops.transforms.Transforms
 import util.{NLP, Semantic}
 import java.util
 
-import com.hazelcast.config.Config
-import com.hazelcast.core.{Hazelcast}
+import com.hazelcast.config.{Config, ManagementCenterConfig}
+import com.hazelcast.core.Hazelcast
 import org.nd4j.linalg.cpu.nativecpu.NDArray
 
 import scala.collection.JavaConverters._
@@ -26,7 +26,6 @@ import scala.collection.JavaConverters._
   * Created by gary on 12/7/2017.
   */
 class Concepts {
-
   def first(document: JSONObject, strings: Seq[String]): Option[String] = {
     strings.filter(
       (key) => document.has(key) && (
@@ -54,40 +53,55 @@ class Concepts {
   }
 
   val modelFile = "D:\\projects\\clones\\pathToSaveModel10_10_1000_5_1510799977189.txt"
-  val w2v = new Semantic(modelFile)
-  w2v.init
+  lazy val w2v = new Semantic(modelFile)
 
   // todo can this happen while other stuff is going on?
-  val model = w2v.model.getOrElse(???)
+  lazy val model = {
+    w2v.init
+    w2v.model.getOrElse(???)
+  }
 
   val cfg = new Config("concepts")
-  cfg.setLiteMember(true)
+
+  /*cfg.setManagementCenterConfig(
+    new ManagementCenterConfig(
+      "http://localhost:8080/mancenter",
+      3
+    )
+  )*/
+  //cfg.setLiteMember(true)
+
   val instance = Hazelcast.newHazelcastInstance(cfg)
 
   var getWordVectorsMeanCache =
-    instance.getMap[String, INDArray]("wordVectorsMean")
+    instance.getMap[String, Option[INDArray]]("wordsMean")
+
+  def shutdown(): Unit = {
+    instance.shutdown()
+  }
+
   def getWordVectorsMean(tokens: List[String]): Option[INDArray] = {
-    val words =
-      tokens.filter(
-        model.getWordVector(_) != null
-      ).sorted
+    val key: String =
+      tokens.sorted.mkString(",")
 
-    if (words.length == 0) {
-      None
-    } else {
-      val key: String =
-        words.mkString(",")
+    if (!getWordVectorsMeanCache.containsKey(key)) {
+      val words =
+        tokens.filter(
+          model.getWordVector(_) != null
+        ).sorted
 
-      if (!getWordVectorsMeanCache.containsKey(key)) {
+      if (words.length > 0) {
         val output: INDArray = model.getWordVectorsMean(words.asJavaCollection)
 
-        getWordVectorsMeanCache.put(key, output)
-        println("added to cache")
-
+        getWordVectorsMeanCache.put(key, Some(output))
         Some(output)
       } else {
-        Some(getWordVectorsMeanCache.get(key))
-      }
+        getWordVectorsMeanCache.put(key, None)
+
+        None
+     }
+    } else {
+      getWordVectorsMeanCache.get(key)
     }
   }
 

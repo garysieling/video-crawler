@@ -16,6 +16,8 @@ import org.nd4j.linalg.ops.transforms.Transforms
 import util.{NLP, Semantic}
 import java.util
 
+import com.hazelcast.config.{Config, ManagementCenterConfig}
+import com.hazelcast.core.{Hazelcast, HazelcastInstance, IMap}
 import org.nd4j.linalg.cpu.nativecpu.NDArray
 
 import scala.collection.JavaConverters._
@@ -26,6 +28,8 @@ case class Link(title: String, url: String, text: String, id: String, score: Flo
 
 object ConceptSearchEmails {
   def main(args: Array[String]): Unit = {
+    val startTime = new Date
+    println(startTime)
     // TODO port unit tests?
     // TODO get data from Google spreadsheet
     // TODO how long does this take if you do 200 emails instead of one
@@ -77,21 +81,22 @@ object ConceptSearchEmails {
                   val previouslySent = list(context.get("sent"))
 
                   if (like.length > 0) {
-                    println(new Date)
+                    println("Starting like: " + new Date)
                     val links1 = concepts.generate(like, dislike, previouslySent, new VideoDataType)
                     links1.map(println)
-                    println(new Date)
+                    println("Videos chosen: " + new Date)
 
-                    println(new Date)
-                    val links2 = concepts.generate(like, dislike, previouslySent, new ArticleDataType)
-                    links2.map(println)
-                    println(new Date)
+                    //println(new Date)
+                    //val links2 = concepts.generate(like, dislike, previouslySent, new ArticleDataType)
+                    //links2.map(println)
+                    //println(new Date)
 
-                    Some(email, id, links1, links2)
+                    Some(email, id, links1, links1)
                   } else {
                     None
                   }
                 }
+
                 case _ => None
               }
             }
@@ -109,6 +114,11 @@ object ConceptSearchEmails {
     val json = scala.util.parsing.json.JSONArray(output).toString()
     Files.write(Paths.get(args(1)), json.getBytes(StandardCharsets.UTF_8))
 
+    println(((new Date).getTime))
+    println(startTime.getTime)
+    println(((new Date).getTime - startTime.getTime) / 1000.0 / 60.0)
+
+    concepts.shutdown()
     //println(textTemplate)
     //println(htmlTemplate)
   }
