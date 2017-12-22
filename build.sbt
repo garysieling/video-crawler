@@ -32,6 +32,7 @@ resolvers += "jCenter" at "https://jcenter.bintray.com"
 libraryDependencies += "net.dean.jraw" % "JRAW" % "0.9.0"
 libraryDependencies += "org.rogach" %% "scallop" % "3.0.3"
 
+libraryDependencies += "com.hazelcast" % "hazelcast" % "3.9.1"
 
 scalaVersion := "2.11.11"
 

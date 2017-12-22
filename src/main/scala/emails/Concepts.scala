@@ -16,12 +16,11 @@ import org.nd4j.linalg.ops.transforms.Transforms
 import util.{NLP, Semantic}
 import java.util
 
+import com.hazelcast.config.Config
+import com.hazelcast.core.{Hazelcast, HazelcastInstance}
 import org.nd4j.linalg.cpu.nativecpu.NDArray
 
 import scala.collection.JavaConverters._
-import scala.collection.parallel.ForkJoinTaskSupport
-//import scala.util.parsing.json.JSONArray
-
 
 /**
   * Created by gary on 12/7/2017.
@@ -82,6 +81,7 @@ class Concepts {
       }
     }
   }
+
   // TODO I think there might be a better way to do this, I doubt this will be good on a GPU
   def safeCosine(
                   a: Option[INDArray],
