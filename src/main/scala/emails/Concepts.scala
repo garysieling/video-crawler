@@ -17,7 +17,7 @@ import util.{NLP, Semantic}
 import java.util
 
 import com.hazelcast.config.Config
-import com.hazelcast.core.{Hazelcast, HazelcastInstance}
+import com.hazelcast.core.{Hazelcast}
 import org.nd4j.linalg.cpu.nativecpu.NDArray
 
 import scala.collection.JavaConverters._
@@ -60,24 +60,33 @@ class Concepts {
   // todo can this happen while other stuff is going on?
   val model = w2v.model.getOrElse(???)
 
-  var getWordVectorsMeanCache = Map[List[String], INDArray]()
+  val cfg = new Config("concepts")
+  cfg.setLiteMember(true)
+  val instance = Hazelcast.newHazelcastInstance(cfg)
+
+  var getWordVectorsMeanCache =
+    instance.getMap[String, INDArray]("wordVectorsMean")
   def getWordVectorsMean(tokens: List[String]): Option[INDArray] = {
-    val key =
+    val words =
       tokens.filter(
         model.getWordVector(_) != null
-      )
+      ).sorted
 
-    if (key.length == 0) {
+    if (words.length == 0) {
       None
     } else {
-      // TODO: database-ize
-      if (!getWordVectorsMeanCache.contains(key)) {
-        val output: INDArray = model.getWordVectorsMean(key.asJavaCollection)
-        getWordVectorsMeanCache = getWordVectorsMeanCache + (key -> output)
+      val key: String =
+        words.mkString(",")
+
+      if (!getWordVectorsMeanCache.containsKey(key)) {
+        val output: INDArray = model.getWordVectorsMean(words.asJavaCollection)
+
+        getWordVectorsMeanCache.put(key, output)
+        println("added to cache")
 
         Some(output)
       } else {
-        Some(getWordVectorsMeanCache(key))
+        Some(getWordVectorsMeanCache.get(key))
       }
     }
   }
