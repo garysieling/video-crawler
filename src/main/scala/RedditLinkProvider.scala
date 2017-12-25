@@ -362,14 +362,15 @@ class RedditLinkProvider(directory: Directory, conf: RedditConf, subreddits: Lis
 
             //val articleTitleAndText = cmd.title(directory.value + "\\" + file)
 
-            val cleanText = NLP.cleanText(text)
+            val nlp = new NLP(null)
+            val cleanText = nlp.cleanText(text)
             println(cleanText)
 
             val shorterUrl = cleanUrl(data._1.url)
 
             val id = new String(shorterUrl)
 
-            sid.setField("article", NLP.replaceEntities(cleanText))
+            sid.setField("article", nlp.replaceEntities(cleanText))
             sid.setField("cleanUrl", shorterUrl)
             sid.setField("subreddit", subreddit)
             sid.setField("comments", comments)
@@ -378,7 +379,7 @@ class RedditLinkProvider(directory: Directory, conf: RedditConf, subreddits: Lis
               sid.setField("domain", data._1.domain)
               sid.setField("removalReason", data._1.removalReason)
               sid.setField("reddit_title", data._1.title)
-              sid.setField("reddit_title_entities", NLP.replaceEntities(data._1.title))
+              sid.setField("reddit_title_entities", nlp.replaceEntities(data._1.title))
               sid.setField("created", data._1.created)
               sid.setField("weekoftime", data._1.created.getTime / 1000 / 3600 / 24 / 7)
               sid.setField("dayoftime", data._1.created.getTime / 1000 / 3600 / 24)

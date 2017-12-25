@@ -4,6 +4,7 @@ import java.lang.Math._
 import java.text.BreakIterator
 import java.util.Locale
 
+import com.hazelcast.core.HazelcastInstance
 import com.telmomenezes.jfastemd._
 import org.deeplearning4j.models.word2vec.Word2Vec
 import org.nd4j.linalg.api.ndarray.INDArray
@@ -15,7 +16,7 @@ import scala.util.matching.Regex;
 /**
   * Created by gary on 8/3/2017.
   */
-object NLP {
+class NLP(instance: HazelcastInstance) {
   def cleanText(text: String): String = {
     text.split("\n").map(
       (line) => line.trim
@@ -94,29 +95,41 @@ object NLP {
     )(text)
   }
 
+  var getWordsCache =
+    instance.getMap[String, List[String]]("getWordsCache")
+
+
   def getWords(text: String): List[String] = {
-    var words: List[String] = List()
+    if (getWordsCache.containsKey(text)) {
+      getWordsCache.get(text)
+    } else {
+      var words: List[String] = List()
 
-    val iterator: BreakIterator = BreakIterator.getWordInstance(Locale.US)
-    val source: String = text
-    iterator.setText(source)
+      val iterator: BreakIterator = BreakIterator.getWordInstance(Locale.US)
+      val source: String = text
+      iterator.setText(source)
 
-    var start: Int = iterator.first
+      var start: Int = iterator.first
 
-    val sb: StringBuffer = new StringBuffer
+      val sb: StringBuffer = new StringBuffer
 
-    var end: Int = iterator.next
-    while (end != BreakIterator.DONE) {
-      val sentence: String = source.substring(start, end)
-      words = words ++ List(sentence)
+      var end: Int = iterator.next
+      while (end != BreakIterator.DONE) {
+        val sentence: String = source.substring(start, end)
+        words = words ++ List(sentence)
 
-      start = end
-      end = iterator.next
+        start = end
+        end = iterator.next
+      }
+
+      val result = words.map(
+        _.toLowerCase
+      )
+
+      getWordsCache.put(text, result)
+
+      result
     }
-
-    words.map(
-      _.toLowerCase
-    )
   }
 
   var queryCache1 = Map[String, List[FeatureND]]()

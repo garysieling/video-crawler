@@ -57,13 +57,14 @@ object DiversitySearch {
     coll.tasksupport = new ForkJoinTaskSupport(
       new scala.concurrent.forkjoin.ForkJoinPool(16))
 
+    val nlp = new NLP(null)
     val allDocuments =
       coll
         .map(
           (document) =>
             (
               document._1,
-              NLP.getWords(document._2)
+              nlp.getWords(document._2)
             )
         ).map(
           (tuple) => (

@@ -28,6 +28,19 @@ case class Link(title: String, url: String, text: String, id: String, score: Flo
 
 object ConceptSearchEmails {
   def main(args: Array[String]): Unit = {
+
+    val cfg = new Config("concepts")
+
+    /*cfg.setManagementCenterConfig(
+      new ManagementCenterConfig(
+        "http://localhost:8080/mancenter",
+        3
+      )
+    )*/
+    //cfg.setLiteMember(true)
+
+    val hazelcastInstance = Hazelcast.newHazelcastInstance(cfg)
+
     val startTime = new Date
     println(startTime)
     // TODO port unit tests?
@@ -62,7 +75,7 @@ object ConceptSearchEmails {
     }
 
     val data = new JSONArray(request)
-    val concepts = new Concepts
+    val concepts = new Concepts(hazelcastInstance)
 
     val parallel =
       data.toList.asScala.flatMap(
@@ -114,8 +127,6 @@ object ConceptSearchEmails {
     val json = scala.util.parsing.json.JSONArray(output).toString()
     Files.write(Paths.get(args(1)), json.getBytes(StandardCharsets.UTF_8))
 
-    println(((new Date).getTime))
-    println(startTime.getTime)
     println(((new Date).getTime - startTime.getTime) / 1000.0 / 60.0)
 
     concepts.shutdown()

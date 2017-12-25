@@ -129,14 +129,15 @@ object ConceptSearch {
     val startTime = new Date
     println(startTime)
 
-    val distance = NLP.getDocumentDistance(
+    val nlp = new NLP(null)
+    val distance = nlp.getDocumentDistance(
       "machine learning, python", model)
 
     val alpha = 0.20
 
     val documents = documentsSolr.map(
       (document) =>
-        (document._1, NLP.getWords(document._1) ++ NLP.getWords(document._2.substring(0, Math.min(document._2.length, 1000))), document._3)
+        (document._1, nlp.getWords(document._1) ++ nlp.getWords(document._2.substring(0, Math.min(document._2.length, 1000))), document._3)
     ).map(
       (fileData) => {
         //println("Testing: " + fileData)

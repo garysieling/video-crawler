@@ -17,7 +17,7 @@ import util.{NLP, Semantic}
 import java.util
 
 import com.hazelcast.config.{Config, ManagementCenterConfig}
-import com.hazelcast.core.Hazelcast
+import com.hazelcast.core.{Hazelcast, HazelcastInstance}
 import org.nd4j.linalg.cpu.nativecpu.NDArray
 
 import scala.collection.JavaConverters._
@@ -25,7 +25,7 @@ import scala.collection.JavaConverters._
 /**
   * Created by gary on 12/7/2017.
   */
-class Concepts {
+class Concepts(instance: HazelcastInstance) {
   def first(document: JSONObject, strings: Seq[String]): Option[String] = {
     strings.filter(
       (key) => document.has(key) && (
@@ -61,20 +61,8 @@ class Concepts {
     w2v.model.getOrElse(???)
   }
 
-  val cfg = new Config("concepts")
-
-  /*cfg.setManagementCenterConfig(
-    new ManagementCenterConfig(
-      "http://localhost:8080/mancenter",
-      3
-    )
-  )*/
-  //cfg.setLiteMember(true)
-
-  val instance = Hazelcast.newHazelcastInstance(cfg)
-
   var getWordVectorsMeanCache =
-    instance.getMap[String, Option[INDArray]]("wordsMean")
+    instance.getMap[String, Option[INDArray]]("wordVectors2")
 
   def shutdown(): Unit = {
     instance.shutdown()
@@ -255,11 +243,13 @@ class Concepts {
     // TODO : caching - in this case each query would potentially duplicate
     val queryMean = getWordVectorsMean(queryWords)
 
+    val nlp = new NLP(instance)
+
     val mostAbout =
       documentsSolr.map(
         (document: Link) =>
           (
-            NLP.getWords(document.text),
+            nlp.getWords(document.text),
             document
             )
       ).map(

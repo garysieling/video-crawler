@@ -85,12 +85,13 @@ object AboutnessConceptSearch {
     coll.tasksupport = new ForkJoinTaskSupport(
       new scala.concurrent.forkjoin.ForkJoinPool(16))
 
+    val nlp = new NLP(null)
     val documents =
       coll.map(
         (document) => {
           println("starting doc " + new DateTime())
 
-          val mean = model.getWordVectorsMean(NLP.getWords(document._1))
+          val mean = model.getWordVectorsMean(nlp.getWords(document._1))
           println("finished doc" + new DateTime())
 
           (document._2, mean)
