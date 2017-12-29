@@ -7,22 +7,12 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Paths}
 import java.util.Date
 
-import org.apache.solr.client.solrj.SolrQuery
-import org.apache.solr.client.solrj.impl.HttpSolrClient
-import org.apache.solr.common.SolrDocument
-import org.json.{JSONArray, JSONObject}
-import org.nd4j.linalg.api.ndarray.INDArray
-import org.nd4j.linalg.ops.transforms.Transforms
-import util.{NLP, Semantic}
+import org.json.JSONArray
 import java.util
 
-import com.hazelcast.config.{Config, ManagementCenterConfig}
-import com.hazelcast.core.{Hazelcast, HazelcastInstance, IMap}
-import org.nd4j.linalg.cpu.nativecpu.NDArray
-
-import scala.collection.JavaConverters._
+import com.hazelcast.config.Config
+import com.hazelcast.core.Hazelcast
 import scala.collection.parallel.ForkJoinTaskSupport
-//import scala.util.parsing.json.JSONArray
 
 case class Link(title: String, url: String, text: String, id: String, score: Float)
 

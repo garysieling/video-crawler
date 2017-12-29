@@ -1,23 +1,16 @@
 package emails
 
-import java.nio.file.{Files, Paths}
-import java.nio.charset.StandardCharsets
-import java.io._
-import java.nio.charset.StandardCharsets
-import java.nio.file.{Files, Paths}
 import java.util.Date
 
 import org.apache.solr.client.solrj.SolrQuery
 import org.apache.solr.client.solrj.impl.HttpSolrClient
 import org.apache.solr.common.SolrDocument
-import org.json.{JSONArray, JSONObject}
+import org.json.JSONObject
 import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.ops.transforms.Transforms
 import util.{NLP, Semantic}
-import java.util
 
-import com.hazelcast.config.{Config, ManagementCenterConfig}
-import com.hazelcast.core.{Hazelcast, HazelcastInstance}
+import com.hazelcast.core.HazelcastInstance
 import org.nd4j.linalg.cpu.nativecpu.NDArray
 
 import scala.collection.JavaConverters._
