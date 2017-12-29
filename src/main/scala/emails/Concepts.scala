@@ -45,7 +45,7 @@ class Concepts(instance: HazelcastInstance) {
     url + "?utm_source=findlectures"
   }
 
-  val modelFile = "D:\\projects\\clones\\pathToSaveModel10_10_1000_5_1510799977189.txt"
+  val modelFile = "C:\\data\\pathToSaveModel10_10_1000_5_1510799977189.txt"
   lazy val w2v = new Semantic(modelFile)
 
   // todo can this happen while other stuff is going on?
@@ -197,9 +197,8 @@ class Concepts(instance: HazelcastInstance) {
 
     val rowsToPull = 100
 
-    val documentsSolr =
-      listDocuments(
-        dataType,
+    val solrQuery =
+      "(" +
         queryWords.map(
           (token) => (
             // TODO: ANDs vs ORs
@@ -207,7 +206,23 @@ class Concepts(instance: HazelcastInstance) {
               (f) => f._1 + "\"" + token + "\"^" + f._2
             )
             )
-        ).toList.mkString(" OR "),
+        ).mkString(" OR ") +
+      ") AND (" +
+        dislike.map(
+          (token) => (
+            // TODO: ANDs vs ORs
+            dataType.fieldsToQuery.map(
+              (f) => "-" + f._1 + "\"" + token + "\"^" + f._2
+            )
+          )
+        ).mkString(" AND ") +
+    ")"
+
+
+    val documentsSolr =
+      listDocuments(
+        dataType,
+        solrQuery,
         rowsToPull,
         previouslySent
       ).filter(
@@ -320,19 +335,24 @@ class Concepts(instance: HazelcastInstance) {
           )
       )
 
-    val diverse =
-      (1.0, mostAboutMeans.head) :: recurse(
-        10,
-        List((1.0, mostAboutMeans.head)),
-        mostAboutMeans.tail
-      )
+    if (mostAboutMeans.size > 0) {
+      val diverse =
+        (1.0, mostAboutMeans.head) :: recurse(
+          10,
+          List((1.0, mostAboutMeans.head)),
+          mostAboutMeans.tail
+        )
 
-    diverse.map(
-      (doc) => (doc._2)
-    ).take(
-      10
-    ).map(
-      (doc) => (doc._1.title, doc._1.url, doc._1.id)
-    )
+      diverse.map(
+        (doc) => (doc._2)
+      ).take(
+        10
+      ).map(
+        (doc) => (doc._1.title, doc._1.url, doc._1.id)
+      )
+    }
+    else {
+      List()
+    }
   }
 }

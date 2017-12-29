@@ -1,15 +1,12 @@
 package emails
 
-import java.nio.file.{Files, Paths}
-import java.nio.charset.StandardCharsets
-import java.io._
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Paths}
 import java.util.Date
 
 import org.json.JSONArray
 import java.util
-
+import scala.collection.JavaConverters._
 import com.hazelcast.config.Config
 import com.hazelcast.core.Hazelcast
 import scala.collection.parallel.ForkJoinTaskSupport
