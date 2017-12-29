@@ -44,10 +44,7 @@ object ConceptSearchEmails {
     val startTime = new Date
     println(startTime)
     // TODO port unit tests?
-    // TODO get data from Google spreadsheet
-    // TODO how long does this take if you do 200 emails instead of one
     // TODO templates for Aweber emails
-    // TODO just take input as JSon and output as json
     // And write some assertins on the input and output
     // TODO stuff doc average in solr
     // TODO try reduction with T-SNE to make searching useful (e.g. pick me one per facet, which might be fast in solr)
