@@ -1,7 +1,9 @@
 package util
 
+import java.io.StringReader
 import java.lang.Math._
 import java.text.BreakIterator
+import java.util
 import java.util.Locale
 
 import com.hazelcast.core.HazelcastInstance
@@ -9,9 +11,12 @@ import com.telmomenezes.jfastemd._
 import org.deeplearning4j.models.word2vec.Word2Vec
 import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.factory.Nd4j
-import org.nd4j.linalg.api.ops.impl.accum.distances.EuclideanDistance
+import org.apache.lucene.analysis.Analyzer
+import org.apache.lucene.analysis.tokenattributes.CharTermAttribute
+import org.apache.lucene.analysis.standard._
+import org.apache.lucene.analysis.TokenStream
 
-import scala.util.matching.Regex;
+import scala.util.matching.Regex
 
 /**
   * Created by gary on 8/3/2017.
@@ -30,27 +35,20 @@ class NLP(instance: HazelcastInstance) {
   }
 
   // TODO option to resolve DBPedia entities here
+  val iterator: BreakIterator = BreakIterator.getSentenceInstance(Locale.US)
+
   def getSentences(text: String): List[String] = {
-    var sentences: List[String] = List()
+    val result = new util.ArrayList[String]()
+    val analyzer: Analyzer = new StandardAnalyzer()
 
-    val iterator: BreakIterator = BreakIterator.getSentenceInstance(Locale.US)
-    val source: String = text
-    iterator.setText(source)
+    val stream: TokenStream = analyzer.tokenStream(null, new StringReader(text))
 
-    var start: Int = iterator.first
-
-    val sb: StringBuffer = new StringBuffer
-
-    var end: Int = iterator.next
-    while (end != BreakIterator.DONE) {
-      val sentence: String = source.substring(start, end)
-      sentences = sentences ++ List(sentence)
-
-      start = end
-      end = iterator.next
+    while (stream.incrementToken) {
+      result.add(stream.getAttribute(classOf[CharTermAttribute]).toString())
     }
 
-    sentences
+    import scala.collection.JavaConversions._
+    result.toList
   }
 
   def replaceEntities(text: String): String = {

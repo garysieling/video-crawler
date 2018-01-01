@@ -205,7 +205,7 @@ class Concepts(instance: HazelcastInstance) {
             dataType.fieldsToQuery.map(
               (f) => f._1 + "\"" + token + "\"^" + f._2
             )
-            )
+          )
         ).mkString(" OR ") +
       ") AND (" +
         dislike.map(
@@ -248,7 +248,6 @@ class Concepts(instance: HazelcastInstance) {
     val startTime = new Date
     println(startTime)
 
-    // TODO : caching - in this case each query would potentially duplicate
     val queryMean = getWordVectorsMean(queryWords)
 
     val nlp = new NLP(instance)

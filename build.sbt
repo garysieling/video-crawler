@@ -33,6 +33,8 @@ libraryDependencies += "net.dean.jraw" % "JRAW" % "0.9.0"
 libraryDependencies += "org.rogach" %% "scallop" % "3.0.3"
 
 libraryDependencies += "com.hazelcast" % "hazelcast" % "3.9.1"
+// https://mvnrepository.com/artifact/org.apache.lucene/lucene-core
+libraryDependencies += "org.apache.lucene" % "lucene-core" % "7.2.0"
 
 scalaVersion := "2.11.11"
 
