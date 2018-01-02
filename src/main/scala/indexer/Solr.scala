@@ -1,22 +1,56 @@
+package indexer
+
 import java.io._
 
+import com.hazelcast.core.HazelcastInstance
 import org.apache.solr.client.solrj.SolrQuery
-import org.apache.solr.client.solrj.impl.{HttpSolrClient, HttpSolrServer}
-import org.apache.solr.common.{SolrDocument, SolrDocumentList, SolrInputDocument}
-import org.apache.solr.common.params.SolrParams
+import org.apache.solr.client.solrj.impl.HttpSolrClient
+import org.apache.solr.common.{SolrDocument, SolrInputDocument}
 import org.json.JSONObject
 
-import scala.collection.JavaConversions._
 import scala.collection.parallel.ForkJoinTaskSupport
 
-class Solr(core: String) {
-  //val solrUrl = "http://40.87.64.225:8983/solr/" + core
-  val solrUrl = "http://40.87.64.225:8983/solr/" + core
-
-  val solr = new HttpSolrClient(solrUrl)
-
-  def list(qq: String, fl: List[String], rows: Integer): List[SolrDocument] = {
+class Solr(hazelcastInstance: HazelcastInstance) {
+  def listDocuments(dt: DataType, qq: String, rows: Integer, skip: List[String]): List[SolrDocument] = {
     import scala.collection.JavaConversions._
+
+    val solrUrl = "http://40.87.64.225:8983/solr/" + dt.core
+    val solr = new HttpSolrClient(solrUrl)
+
+    val query = new SolrQuery()
+
+    // todo remove negative terms
+
+    val userQuery = qq
+    query.setQuery( qq )
+    query.setFields((dt.fieldsToRetrieve ++ dt.textFields).toArray: _*)
+    query.setRequestHandler("tvrh")
+    query.setRows(rows)
+    skip.map(
+      (id) => {
+        query.addFilterQuery("-id:" + id)
+      }
+    )
+
+    dt.filter match {
+      case Some(value: String) => query.addFilterQuery(value)
+      case None => {}
+    }
+
+    val rsp = solr.query( query )
+
+    val result = rsp.getResults().toList
+
+    result
+  }
+
+  def list(core: String, qq: String, fl: List[String], rows: Integer): List[SolrDocument] = {
+    import scala.collection.JavaConversions._
+
+    //val solrUrl = "http://40.87.64.225:8983/solr/" + core
+    val solrUrl = "http://40.87.64.225:8983/solr/" + core
+
+    val solr = new HttpSolrClient(solrUrl)
 
     val query = new SolrQuery()
     query.setQuery( qq )
@@ -44,7 +78,12 @@ class Solr(core: String) {
     }
   }
 
-  def exists(id: String) = {
+  def exists(core: String, id: String) = {
+    //val solrUrl = "http://40.87.64.225:8983/solr/" + core
+    val solrUrl = "http://40.87.64.225:8983/solr/" + core
+
+    val solr = new HttpSolrClient(solrUrl)
+
     try {
       solr.getById(id)
 
@@ -54,15 +93,30 @@ class Solr(core: String) {
     }
   }
 
-  def indexDocument(doc: SolrInputDocument) = {
+  def indexDocument(core: String, doc: SolrInputDocument) = {
+    //val solrUrl = "http://40.87.64.225:8983/solr/" + core
+    val solrUrl = "http://40.87.64.225:8983/solr/" + core
+
+    val solr = new HttpSolrClient(solrUrl)
+
     solr.add(doc)
   }
 
-  def commit = {
+  def commit(core: String) = {
+    //val solrUrl = "http://40.87.64.225:8983/solr/" + core
+    val solrUrl = "http://40.87.64.225:8983/solr/" + core
+
+    val solr = new HttpSolrClient(solrUrl)
+
     solr.commit()
   }
 
-  def indexFile(file: File): Unit = {
+  def indexFile(core: String, file: File): Unit = {
+    //val solrUrl = "http://40.87.64.225:8983/solr/" + core
+    val solrUrl = "http://40.87.64.225:8983/solr/" + core
+
+    val solr = new HttpSolrClient(solrUrl)
+
     // post to Solrs
     //println(file)
     val br: BufferedReader = new BufferedReader(new FileReader(file))
@@ -149,7 +203,12 @@ class Solr(core: String) {
     }
   }
 
-  def main( args:Array[String] ):Unit = {
+  def main(args:Array[String] ):Unit = {
+    //val solrUrl = "http://40.87.64.225:8983/solr/" + core
+    val solrUrl = "http://40.87.64.225:8983/solr/talks"
+
+    val solr = new HttpSolrClient(solrUrl)
+
     val folderPath: String = "C:\\projects\\image-annotation\\data\\talks\\json\\1"
 
     val folder: File = new File(folderPath)
@@ -163,7 +222,7 @@ class Solr(core: String) {
     work.tasksupport = new ForkJoinTaskSupport(
       new scala.concurrent.forkjoin.ForkJoinPool(32))
 
-    work.map(indexFile)
+    work.map((file) => indexFile("talks", file))
     solr.commit()
   }
 

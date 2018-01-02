@@ -1,4 +1,4 @@
-package emails
+package indexer
 
 import org.apache.solr.common.SolrDocument
 

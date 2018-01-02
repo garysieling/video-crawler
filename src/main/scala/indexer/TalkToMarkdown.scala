@@ -1,4 +1,5 @@
-import java.util.UUID
+package indexer
+
 import java.io.File
 
 import util._

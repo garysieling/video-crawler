@@ -35,13 +35,12 @@ class NLP(instance: HazelcastInstance) {
   }
 
   // TODO option to resolve DBPedia entities here
-  val iterator: BreakIterator = BreakIterator.getSentenceInstance(Locale.US)
-
-  def getSentences(text: String): List[String] = {
+  def getTokens(text: String): List[String] = {
     val result = new util.ArrayList[String]()
     val analyzer: Analyzer = new StandardAnalyzer()
 
     val stream: TokenStream = analyzer.tokenStream(null, new StringReader(text))
+    stream.reset()
 
     while (stream.incrementToken) {
       result.add(stream.getAttribute(classOf[CharTermAttribute]).toString())

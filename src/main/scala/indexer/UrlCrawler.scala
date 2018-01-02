@@ -1,3 +1,5 @@
+package indexer
+
 import java.io.File
 
 import util.{Commands, Directory}

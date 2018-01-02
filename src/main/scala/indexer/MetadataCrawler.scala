@@ -1,3 +1,5 @@
+package indexer
+
 import java.io.{File, PrintWriter}
 
 import org.json.{JSONArray, JSONObject}

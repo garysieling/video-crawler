@@ -1,3 +1,5 @@
+package indexer
+
 import java.io.File
 
 import org.apache.solr.client.solrj.SolrQuery
@@ -7,7 +9,6 @@ import util._
 
 object Entities {
   def main(args: Array[String]): Unit = {
-    import scala.collection.JavaConverters._
 
     val cmd = new Commands
     val md = new Markdown

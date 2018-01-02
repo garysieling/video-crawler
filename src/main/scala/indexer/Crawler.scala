@@ -1,11 +1,9 @@
+package indexer
+
 import java.io.File
 
-import crawlercommons.robots.SimpleRobotRulesParser
 import org.json.JSONArray
-import sun.misc.Regexp
 import util.{Commands, Directory}
-
-import scala.util.matching.Regex
 
 /**
   * Created by gary on 6/3/2017.

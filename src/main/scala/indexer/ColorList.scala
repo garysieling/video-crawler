@@ -1,39 +1,21 @@
-import java.io.{File, IOException}
-import java.math.BigInteger
-import java.nio.charset.Charset
-import javax.imageio.ImageIO
+package indexer
+
+import java.io.File
 
 import com.amazonaws.auth.AWSStaticCredentialsProvider
-import com.amazonaws.regions.Regions
 import com.amazonaws.services.elasticmapreduce.AmazonElasticMapReduceClientBuilder
-import com.amazonaws.services.elasticmapreduce.model.Configuration
 import com.amazonaws.services.s3.AmazonS3ClientBuilder
-import play.api.libs.json.Json
-import ij.ImagePlus
-import org.apache.commons.io.FileUtils
-import org.apache.spark.SparkConf
-import org.apache.spark.api.java.{JavaRDD, JavaSparkContext}
-import org.joda.time.DateTime
-import org.nd4j.linalg.dataset.DataSet
 //import com.amazonaws.auth.AWSStaticCredentialsProvider
 import com.amazonaws.auth.BasicAWSCredentials
 import com.amazonaws.regions.Regions
 import com.amazonaws.services.elasticmapreduce.AmazonElasticMapReduce
 //import com.amazonaws.services.elasticmapreduce.AmazonElasticMapReduceClientBuilder
-import com.amazonaws.services.elasticmapreduce.model.ActionOnFailure
-import com.amazonaws.services.elasticmapreduce.model.Application
-import com.amazonaws.services.elasticmapreduce.model.HadoopJarStepConfig
-import com.amazonaws.services.elasticmapreduce.model.JobFlowInstancesConfig
-import com.amazonaws.services.elasticmapreduce.model.RunJobFlowRequest
-import com.amazonaws.services.elasticmapreduce.model.RunJobFlowResult
-import com.amazonaws.services.elasticmapreduce.model.StepConfig
+import com.amazonaws.services.elasticmapreduce.model.{ActionOnFailure, Application, HadoopJarStepConfig, JobFlowInstancesConfig, RunJobFlowRequest, RunJobFlowResult, StepConfig}
 import com.amazonaws.services.elasticmapreduce.util.StepFactory
 import com.amazonaws.services.s3.AmazonS3
 //import com.amazonaws.services.s3.AmazonS3ClientBuilder
 import com.amazonaws.services.s3.model.PutObjectRequest
-import com.beust.jcommander.JCommander
-import com.beust.jcommander.Parameter
-import com.beust.jcommander.ParameterException
+import com.beust.jcommander.{JCommander, Parameter, ParameterException}
 import org.slf4j.{Logger, LoggerFactory};
 /**
   * Created by gary on 11/18/2017.

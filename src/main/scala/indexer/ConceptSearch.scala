@@ -1,10 +1,10 @@
+package indexer
+
 import java.io._
 import java.util.Date
 
 import org.json.JSONObject
 import util.{NLP, Semantic}
-
-import scala.collection.parallel.ForkJoinTaskSupport
 
 object ConceptSearch {
   def first(document: JSONObject, strings: Seq[String]): Option[String] = {
@@ -97,9 +97,10 @@ object ConceptSearch {
 
     var toBeat = 1000000000.0
 
-    val solr = new Solr("talks")
+    val solr = new Solr(null)
     val documentsSolr: List[(String, String, Float)] =
         solr.list(
+          "talks",
           """auto_transcript_txt_en:"machine learning" OR auto_transcript_txt_en:"python"""",
           List("score", "title_s", "auto_transcript_txt_en"),
           10

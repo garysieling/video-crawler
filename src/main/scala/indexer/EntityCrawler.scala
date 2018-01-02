@@ -1,5 +1,6 @@
+package indexer
+
 import java.io.File
-import java.util.UUID
 
 import util.Directory
 

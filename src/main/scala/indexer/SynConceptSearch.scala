@@ -1,8 +1,7 @@
-import java.io._
-import java.util.Date
+package indexer
 
 import org.json.JSONObject
-import util.{NLP, Semantic}
+import util.Semantic
 
 import scala.collection.JavaConverters._
 
@@ -60,9 +59,10 @@ object SynConceptSearch {
 
     println(query)
 
-    val solr = new Solr("talks")
+    val solr = new Solr(null)
     val documentsSolr =
       solr.list(
+        "talks",
         query,
         List("title_s"),
         10

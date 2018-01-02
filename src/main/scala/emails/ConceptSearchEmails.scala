@@ -6,9 +6,12 @@ import java.util.Date
 
 import org.json.JSONArray
 import java.util
+
 import scala.collection.JavaConverters._
 import com.hazelcast.config.Config
 import com.hazelcast.core.Hazelcast
+import indexer.emails.Concepts
+
 import scala.collection.parallel.ForkJoinTaskSupport
 
 case class Link(title: String, url: String, text: String, id: String, score: Float)

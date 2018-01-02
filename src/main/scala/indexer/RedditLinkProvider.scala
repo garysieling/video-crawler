@@ -1,7 +1,7 @@
+package indexer
+
 import java.io.FileNotFoundException
 import java.net.SocketTimeoutException
-import java.security.MessageDigest
-import java.util.{Calendar, Date}
 
 import net.dean.jraw.RedditClient
 import net.dean.jraw.http._
@@ -11,12 +11,9 @@ import net.dean.jraw.paginators.{Sorting, SubredditPaginator, TimePeriod}
 import org.apache.solr.common.SolrInputDocument
 import org.joda.time.DateTime
 import org.rogach.scallop.ScallopConf
-import util.{Commands, Directory, NLP, Semantic}
+import util.{Commands, Directory, NLP}
 import java.util
 
-import scala.util.Try
-import scala.util.Success
-import scala.util.Failure
 import scala.util.matching.Regex
 
 /**
@@ -397,6 +394,7 @@ class RedditLinkProvider(directory: Directory, conf: RedditConf, subreddits: Lis
             sid.setField("weekoftime", startTime.weekyear().get() * 52 + startTime.weekOfWeekyear().get())
 
             solrClient.indexDocument(
+              "articles",
               sid
             )
 
@@ -405,7 +403,7 @@ class RedditLinkProvider(directory: Directory, conf: RedditConf, subreddits: Lis
             println(" ******************** " + i)
 
             if (i % 100 == 0) {
-              solrClient.commit
+              solrClient.commit("articles")
             }
           }
           //w2v.close()
@@ -430,7 +428,7 @@ class RedditLinkProvider(directory: Directory, conf: RedditConf, subreddits: Lis
       })
     }
 
-    solrClient.commit
+    solrClient.commit("articles")
   }
 
   def run = {
@@ -456,7 +454,7 @@ class RedditLinkProvider(directory: Directory, conf: RedditConf, subreddits: Lis
     //w2v.init
 
     var i = 0
-    val solrClient = new Solr("articles")
+    val solrClient = new Solr(null)
 
     /*getDateRange(new DateTime().minusDays(730), new DateTime()).reverse.map(
       (date: DateTime) => {
@@ -491,7 +489,7 @@ class RedditLinkProvider(directory: Directory, conf: RedditConf, subreddits: Lis
     )
 
     //w2v.close()
-    solrClient.commit
+    solrClient.commit("articles")
 
     print(startTime)
     print(new DateTime())

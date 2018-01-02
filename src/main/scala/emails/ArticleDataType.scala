@@ -1,5 +1,6 @@
 package emails
 
+import indexer.DataType
 import org.apache.solr.common.SolrDocument
 
 /**

@@ -1,10 +1,9 @@
+package indexer
+
 import org.joda.time.DateTime
 import org.json.JSONObject
-import org.nd4j.linalg.api.ndarray.INDArray
-import util.{NLP, Semantic}
-import org.nd4s.Implicits._
-import org.nd4j.linalg.factory.Nd4j
 import org.nd4j.linalg.ops.transforms.Transforms
+import util.{NLP, Semantic}
 
 import scala.collection.JavaConverters._
 import scala.collection.parallel.ForkJoinTaskSupport
@@ -60,7 +59,7 @@ object AboutnessConceptSearch {
         }
       ).mkString(" AND ") + ")"
 
-    val solr = new Solr("talks")
+    val solr = new Solr(null)
 
     val model = w2v.model.get
     val queryMean = model.getWordVectorsMean(List("python", "machine", "learning"))
@@ -68,6 +67,7 @@ object AboutnessConceptSearch {
     println(query)
     val solrResults =
       solr.list(
+        "talks",
         query,
         List("score", "title_s", "auto_transcript_txt_en"),
         100

@@ -1,16 +1,14 @@
-package emails
+package indexer.emails
 
 import java.util.Date
 
-import org.apache.solr.client.solrj.SolrQuery
-import org.apache.solr.client.solrj.impl.HttpSolrClient
-import org.apache.solr.common.SolrDocument
 import org.json.JSONObject
 import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.ops.transforms.Transforms
 import util.{NLP, Semantic}
-
 import com.hazelcast.core.HazelcastInstance
+import emails.Link
+import indexer.{DataType, Solr}
 import org.nd4j.linalg.cpu.nativecpu.NDArray
 
 import scala.collection.JavaConverters._
@@ -162,39 +160,6 @@ class Concepts(instance: HazelcastInstance) {
     //   re-sort by 'aboutness', top N
     //   re-sort by diversity
     //  get reddit updater to work against the same core as new stuff
-    def listDocuments(dt: DataType, qq: String, rows: Integer, skip: List[String]): List[SolrDocument] = {
-      import scala.collection.JavaConversions._
-
-      val solrUrl = "http://40.87.64.225:8983/solr/" + dt.core
-      val solr = new HttpSolrClient(solrUrl)
-
-      val query = new SolrQuery()
-
-      // todo remove negative terms
-
-      val userQuery = qq
-      query.setQuery( qq )
-      query.setFields((dt.fieldsToRetrieve ++ dt.textFields).toArray: _*)
-      query.setRequestHandler("tvrh")
-      query.setRows(rows)
-      skip.map(
-        (id) => {
-          query.addFilterQuery("-id:" + id)
-        }
-      )
-
-      dt.filter match {
-        case Some(value: String) => query.addFilterQuery(value)
-        case None => {}
-      }
-
-      val rsp = solr.query( query )
-
-      val result = rsp.getResults().toList
-
-      result
-    }
-
     val rowsToPull = 100
 
     val solrQuery =
@@ -219,8 +184,10 @@ class Concepts(instance: HazelcastInstance) {
     ")"
 
 
+    val solr = new Solr(instance)
+
     val documentsSolr =
-      listDocuments(
+      solr.listDocuments(
         dataType,
         solrQuery,
         rowsToPull,

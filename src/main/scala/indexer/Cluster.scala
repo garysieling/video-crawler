@@ -1,3 +1,5 @@
+package indexer
+
 import org.deeplearning4j.models.word2vec.Word2Vec
 import util.Semantic
 
