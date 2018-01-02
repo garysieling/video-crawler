@@ -9,7 +9,6 @@ import util.{NLP, Semantic}
 import com.hazelcast.core.HazelcastInstance
 import emails.Link
 import indexer.{DataType, Solr}
-import org.nd4j.linalg.cpu.nativecpu.NDArray
 
 import scala.collection.JavaConverters._
 
@@ -130,8 +129,6 @@ class Concepts(instance: HazelcastInstance) {
       case None => None
     }
   }
-
-  val zero1000 = new NDArray(Array.tabulate[Float](1000)( (a) => 0))
 
   def generate(
                 queryWords: List[String],

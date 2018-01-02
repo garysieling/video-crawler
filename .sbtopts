@@ -1,0 +1,1 @@
+-Xmx10G -XX:+UseConcMarkSweepGC -XX:+CMSClassUnloadingEnabled -XX:MaxPermSize=10G -Xss2M  -Duser.timezone=GMT

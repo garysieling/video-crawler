@@ -91,7 +91,7 @@ object AboutnessConceptSearch {
         (document) => {
           println("starting doc " + new DateTime())
 
-          val mean = model.getWordVectorsMean(nlp.getWords(document._1))
+          val mean = model.getWordVectorsMean(nlp.getTokensCached(document._1))
           println("finished doc" + new DateTime())
 
           (document._2, mean)

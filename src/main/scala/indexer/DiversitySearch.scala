@@ -67,7 +67,7 @@ object DiversitySearch {
           (document) =>
             (
               document._1,
-              nlp.getWords(document._2)
+              nlp.getTokensCached(document._2)
             )
         ).map(
           (tuple) => (

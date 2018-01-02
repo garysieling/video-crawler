@@ -4,52 +4,111 @@ package indexer
 import com.hazelcast.config.Config
 import com.hazelcast.core.Hazelcast
 import indexer.emails.Concepts
+import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4s.Implicits._
 import util.NLP
+
+import scala.collection.Iterable
 
 object GpuConcepts {
 
   val cfg = new Config("concepts")
   val hazelcastInstance = Hazelcast.newHazelcastInstance(cfg)
-  val concepts = new Concepts(hazelcastInstance)
-  val widthOfWordVector: Int = concepts.model.getLayerSize
+  // val concepts = new Concepts(hazelcastInstance)
+  val widthOfWordVector: Int = 1000 //concepts.model.getLayerSize
+
+  def time[R](name: String, block: => R): R = {
+    val t0 = System.nanoTime()
+    val result = block    // call-by-name
+    val t1 = System.nanoTime()
+    println("Elapsed time: " + (t1 - t0) / 1000000000.0 + "s (" + name + ")")
+    result
+  }
 
   def main(args: Array[String]): Unit = {
-    val sentences: List[Map[String, Int]] = List(
-      "See the spot run up the hill spot fetched a pail of the water. test test test.",
-      "a pig ran the test.",
-      "the cat is really the fastest hill test"
-    ).map(
-      (sentence) => {
-        val tokens = new NLP(hazelcastInstance).getTokens(sentence)
+    // TODO: query GPU memory size
+    // TODO: split this map up into chunks, to fit the RAM available
 
-        tokens
-          .filter(
-            concepts.model.hasWord
-          )
-          .groupBy(
-            (v: String) => v
-          )
-          .mapValues(_.size)
-      }
+    println(
+      time("total", exec)
+    )
+  }
+
+  def exec(): Unit = {
+    val solr = new Solr(hazelcastInstance)
+    val documentsSolr: List[(String, String, Float)] =
+      time(
+        "solr",
+        solr.list(
+          "talks",
+          """auto_transcript_txt_en:"machine learning" OR auto_transcript_txt_en:"python"""",
+          List("score", "title_s", "auto_transcript_txt_en"),
+          100
+        ).filter(
+          _ != null
+        ).filter(
+          doc =>
+            doc.get("title_s") != null &&
+              doc.get("auto_transcript_txt_en") != null
+        ).map(
+          (doc) => (
+            doc.get("title_s").toString,
+            doc.get("auto_transcript_txt_en").toString,
+            doc.get("score").asInstanceOf[Float]
+            )
+        ).toList
+      )
+
+    val sentences: List[Map[String, Int]] =
+      time(
+        "tokenize",
+        documentsSolr.map(
+        _._2
+      ).map(
+        (sentence) => {
+          val tokens = new NLP(hazelcastInstance).getTokens(sentence)
+
+          tokens
+            .filter(
+              (x: String) => true
+              //concepts.model.hasWord
+            )
+            .groupBy(
+              (v: String) => v
+            )
+            .mapValues(_.size)
+        }
+      ).toList
     )
 
     val df: Map[String, Int] =
-      sentences.reduce(
-        (a: Map[String, Int], b: Map[String, Int]) => {
-          (a.keySet ++ b.keySet).map(
-            (key) => (key -> (a.getOrElse(key, 0) + b.getOrElse(key, 0)))
-          ).toMap
-        }
+      time(
+        "df",
+        sentences.reduce(
+          (a: Map[String, Int], b: Map[String, Int]) => {
+            (a.keySet ++ b.keySet).map(
+              (key) => (key -> (a.getOrElse(key, 0) + b.getOrElse(key, 0)))
+            ).toMap
+          }
+        ).par.seq
       )
 
     val wordVectors =
-      df.keySet.map(
-        (key) =>
-          (key -> concepts.model.getWordVector(key))
-      ).toMap
+      time(
+        "vectors",
+        df.keySet.map(
+          (key) =>
+            (key ->
+              Seq.iterate(1, widthOfWordVector)((idx: Int) => 1).map(
+                (i: Int) => Math.random()
+              )
+              //concepts.model.getWordVector(key)
+            )
+        ).toMap
+      )
 
-    println(
+    time(
+      "average",
       sentences.map(
         (sentence: Map[String, Int]) => score(sentence, df, wordVectors)
       )
@@ -58,17 +117,12 @@ object GpuConcepts {
     hazelcastInstance.shutdown()
   }
 
-  def score(termFrequencies: Map[String, Int], documentFrequencies: Map[String, Int], wordVectors: Map[String, Array[Double]]) {
-    println(termFrequencies)
-    println(documentFrequencies)
-    println(wordVectors)
-
+  def score(termFrequencies: Map[String, Int], documentFrequencies: Map[String, Int], wordVectors: Map[String, Iterable[Double]]): INDArray = {
     val numWords: Int = termFrequencies.size
     val modes: Int = 3 // TF, IDF, concept
     val max: Int = numWords * widthOfWordVector * modes
 
-    val words = termFrequencies.keySet.toList
-    val word0 = words.head
+    val words = termFrequencies.keySet
 
     val data: Seq[Double] =
       Seq(
@@ -87,28 +141,26 @@ object GpuConcepts {
         )
       ).flatten
 
-    val arr = data.toNDArray
+    val arr =
+      time(
+        "data construction",
+        data.toNDArray
+      )
 
-    val wordIdx = 0
+    time("math",
+      {
+        val modeVectors = arr.reshape(modes, widthOfWordVector * numWords)
+        val scores = modeVectors(0 -> 1)
+        val tf = modeVectors(1 -> 2)
+        val df = modeVectors(2 -> 3)
 
-    println(arr)
-    val modeVectors = arr.reshape(modes, widthOfWordVector * numWords)
-    println(arr)
-    val scores = modeVectors(0->1)
-    val tf = modeVectors(1->2)
-    val df = modeVectors(2->3)
-    println("scores: " + scores)
-    println("tf: " + tf)
-    println("df: " + df)
+        val weighted = scores * tf / df
 
-    val weighted = scores * tf / df
-    println("weighted: " + weighted)
+        val wordVects = weighted.reshape(numWords, widthOfWordVector)
+        // this is the weighted everage
 
-    val wordVects = weighted.reshape(numWords, widthOfWordVector)
-    println(wordVects)
-
-    // this is the weighted everage
-    println(wordVects.sum(0) / numWords)
+        wordVects.sum(0) / numWords
+      })
 
     // TODO:
     //  - transform words -> these vector things
