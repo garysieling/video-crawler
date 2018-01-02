@@ -2,7 +2,6 @@ package util
 
 import java.io.StringReader
 import java.lang.Math._
-import java.text.BreakIterator
 import java.util
 import java.util.Locale
 
@@ -96,36 +95,15 @@ class NLP(instance: HazelcastInstance) {
     instance.getMap[String, List[String]]("getWordsCache")
 
 
-  def getWords(text: String): List[String] = {
+  def getTokensCached(text: String): List[String] = {
     if (getWordsCache.containsKey(text)) {
       getWordsCache.get(text)
     } else {
-      var words: List[String] = List()
+      val words: List[String] = getTokens(text)
 
-      val iterator: BreakIterator = BreakIterator.getWordInstance(Locale.US)
-      val source: String = text
-      iterator.setText(source)
+      getWordsCache.put(text, words)
 
-      var start: Int = iterator.first
-
-      val sb: StringBuffer = new StringBuffer
-
-      var end: Int = iterator.next
-      while (end != BreakIterator.DONE) {
-        val sentence: String = source.substring(start, end)
-        words = words ++ List(sentence)
-
-        start = end
-        end = iterator.next
-      }
-
-      val result = words.map(
-        _.toLowerCase
-      )
-
-      getWordsCache.put(text, result)
-
-      result
+      words
     }
   }
 
@@ -203,7 +181,7 @@ class NLP(instance: HazelcastInstance) {
   def getDocumentDistance(query: String, model: Word2Vec): (List[String]) => Double = {
 
     val queryMatrix: List[(String, Feature)] =
-      getWords(query).map(
+      getTokensCached(query).map(
         (word) => (word, model.getWordVector(word))
       ).filter(
         _._2 != null

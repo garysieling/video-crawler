@@ -138,7 +138,7 @@ object ConceptSearch {
 
     val documents = documentsSolr.map(
       (document) =>
-        (document._1, nlp.getWords(document._1) ++ nlp.getWords(document._2.substring(0, Math.min(document._2.length, 1000))), document._3)
+        (document._1, nlp.getTokensCached(document._1) ++ nlp.getTokensCached(document._2.substring(0, Math.min(document._2.length, 1000))), document._3)
     ).map(
       (fileData) => {
         //println("Testing: " + fileData)

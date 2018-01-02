@@ -223,7 +223,7 @@ class Concepts(instance: HazelcastInstance) {
       documentsSolr.map(
         (document: Link) =>
           (
-            nlp.getWords(document.text),
+            nlp.getTokensCached(document.text),
             document
             )
       ).map(
