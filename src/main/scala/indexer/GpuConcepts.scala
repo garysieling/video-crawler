@@ -42,6 +42,8 @@ object GpuConcepts {
     val freeMemory2 = runtime.freeMemory()
     val totalFree2 = freeMemory2 + (maxMemory2 - allocatedMemory2)
 
+    System.gc()
+
     println(
       "Elapsed time (" + name + "): " + (t1 - t0) / 1000000000.0 + "s (" + name + ")" + "\n" +
       "Memory: (" + name + "): " +
@@ -52,8 +54,8 @@ object GpuConcepts {
     timings.add(
       Map[String, Double](
         timer + ".1 " + name + ".time" -> ((t1 - t0) / 1000000000.0),
-        timer + ".2 " + name + ".totalFree" -> ((totalFree1 - totalFree2) / 1024.0 / 1024),
-        timer + ".3 " + name + ".totalFree" -> ((allocatedMemory2 - allocatedMemory1) / 1024.0 / 1024)
+        timer + ".2 " + name + ".totalFreeDelta" -> ((totalFree1 - totalFree2) / 1024.0 / 1024),
+        timer + ".3 " + name + ".allocatedDelta" -> ((allocatedMemory2 - allocatedMemory1) / 1024.0 / 1024)
       )
     )
 
@@ -80,6 +82,7 @@ object GpuConcepts {
   def stddev[T](items:Traversable[T])(implicit n:Numeric[T]) : Double = {
     math.sqrt(variance(items))
   }
+
 
   def main(args: Array[String]): Unit = {
     // TODO: query GPU memory size
