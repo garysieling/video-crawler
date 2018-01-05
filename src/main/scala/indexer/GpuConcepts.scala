@@ -6,9 +6,13 @@ import java.text.NumberFormat
 import com.hazelcast.config.Config
 import com.hazelcast.core.{Hazelcast, ICollection}
 import indexer.emails.Concepts
+import jcuda.driver.{CUcontext, CUdevice, JCudaDriver}
+import jcuda.driver.JCudaDriver._
+import org.nd4j.jita.conf.CudaEnvironment
 import org.nd4j.linalg.api.ndarray.INDArray
+import org.nd4j.linalg.factory.Nd4j
 import org.nd4s.Implicits._
-import util.NLP
+import util.{Gpu, NLP}
 
 import scala.collection.Iterable
 import scala.util.Try
@@ -26,12 +30,22 @@ object GpuConcepts {
   val timings = hazelcastInstance.getList("timings").asInstanceOf[ICollection[Map[String, Double]]]
 
   var timer = 1
+  val mode =
+    "gpu.allowPreallocation"
+
+  CudaEnvironment.getInstance().getConfiguration().allowPreallocation(true)
+  //CudaEnvironment.getInstance().getConfiguration().allowCrossDeviceAccess(true)
+  /*CudaEnvironment.getInstance().getConfiguration().allowFallbackFromDevice()
+  CudaEnvironment.getInstance().getConfiguration().allowPreallocation()*/
 
   def time[R](name: String, block: => R): R = {
+    val gpu1 = new Gpu(0)
+
     val maxMemory1 = runtime.maxMemory()
     val allocatedMemory1 = runtime.totalMemory()
     val freeMemory1 = runtime.freeMemory()
     val totalFree1 = freeMemory1 + (maxMemory1 - allocatedMemory1)
+    val gpuMemory1 = gpu1.memory
 
     val t0 = System.nanoTime()
     val result = block
@@ -44,18 +58,24 @@ object GpuConcepts {
 
     System.gc()
 
+    val gpu2 = new Gpu(0)
+    val gpuMemory2 = gpu2.memory
+
+
     println(
       "Elapsed time (" + name + "): " + (t1 - t0) / 1000000000.0 + "s (" + name + ")" + "\n" +
-      "Memory: (" + name + "): " +
+      "Memory Delta: (" + name + "): " +
         format.format((allocatedMemory2 - allocatedMemory1) / 1024 / 1024) + "MB" + " / " +
-        format.format((totalFree1 - totalFree2) / 1024 / 1024) + "MB"
+        format.format((totalFree1 - totalFree2) / 1024 / 1024) + "MB" + "\n" +
+      "GPU Memory Delta: " + ((gpuMemory1.free - gpuMemory2.free) / 1024 / 1024) + "MB (" + gpuMemory1.free + ", " + gpuMemory2.free + ")"
     )
 
     timings.add(
       Map[String, Double](
         timer + ".1 " + name + ".time" -> ((t1 - t0) / 1000000000.0),
         timer + ".2 " + name + ".totalFreeDelta" -> ((totalFree1 - totalFree2) / 1024.0 / 1024),
-        timer + ".3 " + name + ".allocatedDelta" -> ((allocatedMemory2 - allocatedMemory1) / 1024.0 / 1024)
+        timer + ".3 " + name + ".allocatedDelta" -> ((allocatedMemory2 - allocatedMemory1) / 1024.0 / 1024),
+        timer + ".4 " + name + ".gpuRamDelta" -> ((gpuMemory1.free - gpuMemory2.free) / 1024.0 / 1024)
       )
     )
 
@@ -85,6 +105,12 @@ object GpuConcepts {
 
 
   def main(args: Array[String]): Unit = {
+    import scala.collection.JavaConverters._
+
+    println(
+      "Backend: " + Nd4j.getBackend
+    )
+
     // TODO: query GPU memory size
     // TODO: split this map up into chunks, to fit the RAM available
 
@@ -128,6 +154,8 @@ object GpuConcepts {
   }
 
   def exec(): Unit = {
+    val numDocuments = 10
+
     val solr = new Solr(hazelcastInstance)
     val documentsSolr: List[(String, String, Float)] =
       time(
@@ -136,7 +164,7 @@ object GpuConcepts {
           "talks",
           """auto_transcript_txt_en:"machine learning" OR auto_transcript_txt_en:"python"""",
           List("score", "title_s", "auto_transcript_txt_en"),
-          400
+          numDocuments
         ).filter(
           _ != null
         ).filter(
@@ -149,29 +177,30 @@ object GpuConcepts {
             doc.get("auto_transcript_txt_en").toString,
             doc.get("score").asInstanceOf[Float]
             )
-        ).toList
+        )
       )
+
+    assert(documentsSolr.size == numDocuments)
 
     val sentences: List[Map[String, Int]] =
       time(
         "tokenize",
         documentsSolr.map(
-        _._2
-      ).map(
-        (sentence) => {
-          val tokens = new NLP(hazelcastInstance).getTokens(sentence)
-
-          tokens
-            //.filter(
-              //concepts.model.hasWord
-            //)
-            .groupBy(
-              (v: String) => v
-            )
-            .mapValues(_.size)
-        }
+          _._2
+        ).map(
+          (sentence) =>
+            new NLP(hazelcastInstance).getTokens(sentence)
+              //.filter(
+                //concepts.model.hasWord
+              //)
+              .groupBy(
+                (v: String) => v
+              )
+              .mapValues(_.size)
+        )
       )
-    )
+
+    assert(sentences.size == numDocuments)
 
     val df: Map[String, Int] =
       time(
@@ -182,8 +211,10 @@ object GpuConcepts {
               (key) => (key -> (a.getOrElse(key, 0) + b.getOrElse(key, 0)))
             ).toMap
           }
-        ).par.seq
+        )
       )
+
+    assert(df.size > numDocuments)
 
     val wordVectors =
       time(
@@ -199,11 +230,17 @@ object GpuConcepts {
         ).toMap
       )
 
+
+    val startTimer = timer
     time(
-      "average",
+      mode + ".average",
       Try({
         sentences.map(
-          (sentence: Map[String, Int]) => score(sentence, df, wordVectors)
+          (sentence: Map[String, Int]) => {
+            timer = startTimer
+
+            score(sentence, df, wordVectors)
+          }
         )
       }).get
     )
@@ -214,7 +251,7 @@ object GpuConcepts {
     val modes: Int = 3 // TF, IDF, concept
     val max: Int = numWords * widthOfWordVector * modes
 
-    val words = termFrequencies.keySet
+    val words = termFrequencies.keySet.toList.sorted
 
     val data: Seq[Double] =
       Seq(
